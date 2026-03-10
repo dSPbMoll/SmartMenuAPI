@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import insert, delete
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.api import schemas, models
@@ -8,139 +9,215 @@ router = APIRouter(
     tags=["Generic Recipes"]
 )
 
+# ================================ GENERIC RECIPES ================================ 
+
 @router.post("/", status_code=201)
-async def create_generic_recipe(recipe: schemas.GenericRecipe, db: Session = Depends(get_db)):
-    # 1. Creamos el objeto principal de la receta (Tabla: generic_recipe)
-    # No pasamos el 'id' porque es AUTO_INCREMENT en MySQL
+async def create_generic_recipe(recipe: schemas.GenericRecipeCreate, db: Session = Depends(get_db)):
     new_recipe = models.GenericRecipe(
-        self_name=recipe.self_name,
-        cheff_advice=recipe.cheff_advice
+        self_name = recipe.name,
+        cheff_advice = recipe.cheff_advice
     )
     
-    # Añadimos a la sesión para que SQLAlchemy genere el ID
     db.add(new_recipe)
-    db.flush()  # flush() "envía" la receta a la DB para obtener su ID sin cerrar la transacción
+    db.flush()
 
-    # 2. Guardamos los pasos (Tabla: generic_recipe_step)
-    for step in recipe.steps:
-        nuevo_paso = models.GenericRecipeStep(
-            generic_recipe_id=new_recipe.id, # Usamos el ID recién generado
-            step_number=step.step_number,
-            instruction=step.instruction,
-            estimated_time=step.estimated_time
-        )
-        db.add(nuevo_paso)
-
-    # 3. Guardamos las relaciones Muchos a Muchos (Tags e Ingredientes)
-    # Nota: Aquí usamos las tablas intermedias que definimos en models.py
-    for tag_id in recipe.tagIDs:
-        statement = models.recipe_tag_in_generic.insert().values(
-            generic_recipe_id=new_recipe.id, 
-            recipe_tag_id=tag_id
-        )
-        db.execute(statement)
-
-    for ing_id in recipe.genericIngredientIDs:
-        statement = models.generic_ingredient_in_generic_recipe.insert().values(
-            recipe_id=new_recipe.id, 
-            ingredient_id=ing_id
-        )
-        db.execute(statement)
-
-    # 4. Confirmamos todos los cambios en la base de datos
     try:
         db.commit()
         db.refresh(new_recipe)
     except Exception as e:
-        db.rollback() # Si algo falla, deshacemos todo para no dejar datos huérfanos
-        raise HTTPException(status_code=400, detail=f"Error al guardar la receta: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error while saving the recipe: {str(e)}")
     
     return {
         "id": new_recipe.id,
-        "foodId": new_recipe.food_id, # El que generó el Trigger
-        "self_name": new_recipe.self_name,
-        "cheff_advice": new_recipe.cheff_advice,
-        
-        # Extraemos los IDs de la lista de ingredientes (si tienes la relación)
-        "generic_ingredient_ids": [ing.id for ing in new_recipe.ingredients] if hasattr(new_recipe, 'ingredients') else recipe.genericIngredientIDs,
-        
-        # Formateamos los pasos como una lista de objetos
-        "generic_recipe_steps": [
-            {
-                "step_number": s.step_number,
-                "instruction": s.instruction,
-                "estimated_time": s.estimated_time
-            } for s in new_recipe.steps
-        ] if hasattr(new_recipe, 'steps') else [],
-        
-        "tagIDs": recipe.tagIDs
+        "foodId": new_recipe.food_id,
+        "name": new_recipe.self_name,
+        "cheffAdvice": new_recipe.cheff_advice,
     }
 
-    '''
+@router.get("/{genericRecipeId}")
+async def get_generic_recipe(genericRecipeId: int, db: Session = Depends(get_db)):
+
+    db_recipe = db.query(models.GenericRecipe).filter(
+        models.GenericRecipe.id == genericRecipeId
+    ).first()
+
+    if not db_recipe:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Recipe with ID {genericRecipeId} not found"
+        )
+
+    steps = db.query(models.GenericRecipeStep).filter(
+        models.GenericRecipeStep.generic_recipe_id == genericRecipeId
+    ).order_by(models.GenericRecipeStep.step_number.asc()).all()
+
+    tags = db.query(models.RecipeTag).join(models.recipe_tag_in_generic).filter(
+        models.recipe_tag_in_generic.c.generic_recipe_id == genericRecipeId
+    ).all()
+
+    ingredients = db.query(models.GenericIngredient).join(models.generic_ingredient_in_generic_recipe).filter(
+        models.generic_ingredient_in_generic_recipe.c.recipe_id == genericRecipeId
+    ).all()
+
     return {
-        "id": new_recipe.id,
-        "self_name": new_recipe.self_name,
-        "cheff_advice": new_recipe.cheff_advice,
-        "generic_ingredient_ids": {
-
-        }, "generic_recipe_steps": {
-
-        },"tagIDs": {
-
-        }
-    }
-
-    
-    class GenericRecipe(BaseModel):
-    self_name: str
-    cheff_advice: Optional[str] = None
-
-    tagIDs: List[int]
-    genericIngredientIDs: List[int]
-    steps: List[GenericRecipeStep]
-
-    # For FastAPI to convert models automaticly from DB
-    model_config = ConfigDict(from_attributes=True)
-
-
-
-
-    class GenericRecipe(Base):
-    __tablename__ = "generic_recipe"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    food_id = Column(Integer, ForeignKey("food.id"), nullable=False)
-    self_name = Column(String(150), nullable=False)
-    cheff_advice = Column(Text)
-    '''
-
-# Método: GET
-# Ruta: /userApi/v1/genericRecipe/{genericRecipeId}
-@router.get("/userApi/v1/genericRecipe/{genericRecipeId}")
-async def get_generic_recipe(genericRecipeId: int):
-    """
-    Simula la obtención de una receta genérica de la BD.
-    Devuelve un JSON hardcodeado basado en tus especificaciones.
-    """
-    
-    # Este es el JSON "hardcodeado" (los datos fijos)
-    receta_ejemplo = {
-        "name": "Paella de la Abuela",
-        "tagIDs": [1, 5, 12],
-        "genericIngredientIDs": [101, 102, 105, 110],
+        "id": db_recipe.id,
+        "foodId": db_recipe.food_id,
+        "name": db_recipe.self_name,
+        "cheffAdvice": db_recipe.cheff_advice,
         "steps": [
             {
-                "number": 1,
-                "instruction": "Sofreír el conejo y el pollo hasta que estén dorados.",
-                "minutes": 15
-            },
-            {
-                "number": 2,
-                "instruction": "Añadir el tomate rallado y el azafrán.",
-                "minutes": 5
-            }
+                "stepNumber": s.step_number,
+                "instruction": s.instruction,
+                "estimatedTime": s.estimated_time
+            } for s in steps
         ],
-        "cheffAdvice": "No remuevas el arroz una vez que lo eches al caldo si quieres un buen socarrat."
+        "tags": [
+            {
+                "id": t.id,
+                "name": t.self_name
+            } for t in tags
+        ],
+        "ingredients": [
+            {
+                "id": i.id,
+                "name": i.self_name,
+                "foodId": i.food_id,
+                "foodFamily": {
+                    "id": i.food_family.id,
+                    "name": i.food_family.self_name
+                } if i.food_family else None # Just in case an ingredient has no family
+            } for i in ingredients
+        ]
     }
 
-    # FastAPI convierte automáticamente este diccionario a JSON
-    return receta_ejemplo
+@router.delete("/{genericRecipeId}")
+async def delete_generic_recipe(genericRecipeId: int, db: Session = Depends(get_db)):
+
+    recipe = db.query(models.GenericRecipe).filter(models.GenericRecipe.id == genericRecipeId).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Generic Recipe not found")
+
+    # Delete recipe
+    db.execute(
+        delete(models.GenericRecipe).where(
+            models.GenericRecipe.id == genericRecipeId
+        )
+    )
+
+    db.commit()
+
+    return {"message": f"Successfully deleted generic recipe with id {genericRecipeId}."}
+
+# ================================ RECIPE TAGS ================================ 
+
+@router.post("/{genericRecipeId}/tags")
+async def set_tags_to_generic_recipe(genericRecipeId: int, tags: schemas.RecipeTagIdList, db: Session = Depends(get_db)):
+
+    recipe = db.query(models.GenericRecipe).filter(
+        models.GenericRecipe.id == genericRecipeId
+    ).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Generic Recipe not found")
+
+    db.execute(
+        delete(models.recipe_tag_in_generic).where(
+            models.recipe_tag_in_generic.c.generic_recipe_id == genericRecipeId
+        )
+    )
+
+    if tags.ids:
+        tag_associations = [
+            {"generic_recipe_id": genericRecipeId, "recipe_tag_id": t_id}
+            for t_id in set(tags.ids)
+        ]
+        db.execute(insert(models.recipe_tag_in_generic).values(tag_associations))
+
+    db.commit()
+    return {"message": f"Tags updated. Recipe {genericRecipeId} now has {len(tags.ids)} tags."}
+
+# ================================ GENERIC INGREDIENTS ================================
+
+@router.post("/{genericRecipeId}/ingredients")
+async def set_ingredients_to_generic_recipe(
+    genericRecipeId: int,
+    ingredients: schemas.genericIngredientIdList,
+    db: Session = Depends(get_db)
+    ):
+
+    recipe = db.query(models.GenericRecipe).filter(
+        models.GenericRecipe.id == genericRecipeId
+    ).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Generic Recipe not found")
+
+    db.execute(
+        delete(models.generic_ingredient_in_generic_recipe).where(
+            models.generic_ingredient_in_generic_recipe.c.recipe_id == genericRecipeId
+        )
+    )
+
+    if ingredients.ids:
+        ingredient_associations = [
+            {"recipe_id": genericRecipeId, "ingredient_id": i_id}
+            for i_id in set(ingredients.ids)
+        ]
+        db.execute(insert(models.generic_ingredient_in_generic_recipe).values(ingredient_associations))
+
+    db.commit()
+    return {"message": f"Ingredients updated. Recipe {genericRecipeId} now has {len(ingredients.ids)} ingredients."}
+
+# ================================ GENERIC RECIPE STEPS ================================
+
+@router.post("/{genericRecipeId}/steps", status_code=201)
+async def set_generic_recipe_steps(
+    genericRecipeId: int,
+    steps_in: schemas.GenericRecipeStepList, 
+    db: Session = Depends(get_db)
+):
+    recipe = db.query(models.GenericRecipe).filter(
+        models.GenericRecipe.id == genericRecipeId
+    ).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Generic Recipe not found")
+
+    db.execute(
+        delete(models.GenericRecipeStep).where(
+            models.GenericRecipeStep.generic_recipe_id == genericRecipeId
+        )
+    )
+
+    for step_data in steps_in.steps:
+        full_data = step_data.model_dump()
+        full_data["generic_recipe_id"] = genericRecipeId
+        
+        new_step = models.GenericRecipeStep(**full_data)
+        db.add(new_step)
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Database error: {str(e)}")
+    
+    return {"message": f"Recipe steps updated for recipe with id {genericRecipeId}"}
+
+@router.get("/{genericRecipeId}/steps")
+async def get_all_generic_recipe_steps(genericRecipeId: int, db: Session = Depends(get_db)):
+
+    recipe_exists = db.query(models.GenericRecipe).filter(
+        models.GenericRecipe.id == genericRecipeId
+    ).first()
+
+    if not recipe_exists:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Recipe with ID {genericRecipeId} does not exist"
+        )
+
+    steps = db.query(models.GenericRecipeStep).filter(
+        models.GenericRecipeStep.generic_recipe_id == genericRecipeId
+    ).order_by(models.GenericRecipeStep.step_number.asc()).all()
+    
+    # Steps can be a void list
+    return steps

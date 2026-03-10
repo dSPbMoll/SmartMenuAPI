@@ -15,15 +15,13 @@ async def create_food_family(food_family: schemas.FoodFamily, db: Session = Depe
         self_name=food_family.name
     )
     
-    # Añadimos a la sesión para que SQLAlchemy genere el ID
     db.add(new_family)
 
-    # Confirmamos todos los cambios en la base de datos
     try:
         db.commit()
         db.refresh(new_family)
     except Exception as e:
-        db.rollback() # Si algo falla, deshacemos todo para no dejar datos huérfanos
+        db.rollback()
         raise HTTPException(status_code=400, detail=f"Error al guardar la receta: {str(e)}")
     
     return {
@@ -31,15 +29,11 @@ async def create_food_family(food_family: schemas.FoodFamily, db: Session = Depe
         "name": new_family.self_name
     }
 
-# Método: GET
-# Ruta: /userApi/v1/food-family/{foodFamilyId}
 @router.get("/{foodFamilyId}")
 async def get_food_family(foodFamilyId: int, db: Session = Depends(get_db)):
     
-    # 1. Buscamos la familia en la base de datos por su ID
     db_food_family = db.query(models.FoodFamily).filter(models.FoodFamily.id == foodFamilyId).first()
 
-    # 2. Si no existe, lanzamos un error 404
     if db_food_family is None:
         raise HTTPException(
             status_code=404, 
@@ -49,4 +43,24 @@ async def get_food_family(foodFamilyId: int, db: Session = Depends(get_db)):
     return {
         "id": db_food_family.id,
         "name": db_food_family.self_name,
+    }
+
+@router.delete("/{foodFamilyId}")
+async def delete_food_family(foodFamilyId: int, db: Session = Depends(get_db)):
+    
+    db_food_family = db.query(models.FoodFamily).filter(
+        models.FoodFamily.id == foodFamilyId
+    ).first()
+
+    if db_food_family is None:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Food Family with ID {foodFamilyId} not found"
+        )
+
+    db.delete(db_food_family)
+    db.commit()
+
+    return {
+        "message": f"Food family with id {foodFamilyId} successfully deleted"
     }

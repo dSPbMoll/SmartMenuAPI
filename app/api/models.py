@@ -2,55 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, ForeignKey, Numeric, Date,
 from sqlalchemy.orm import relationship
 from app.database import Base
 
-# ==========================================
-# TABLAS DE ASOCIACIÓN (Relaciones N:M)
-# ==========================================
-
-recipe_tag_in_generic = Table(
-    "recipe_tag_in_generic", Base.metadata,
-    Column("generic_recipe_id", Integer, ForeignKey("generic_recipe.id"), primary_key=True),
-    Column("recipe_tag_id", Integer, ForeignKey("recipe_tag.id"), primary_key=True)
-)
-
-recipe_tag_in_specific = Table(
-    "recipe_tag_in_specific", Base.metadata,
-    Column("specific_recipe_id", Integer, ForeignKey("specific_recipe.id"), primary_key=True),
-    Column("recipe_tag_id", Integer, ForeignKey("recipe_tag.id"), primary_key=True)
-)
-
-generic_ingredient_in_generic_recipe = Table(
-    "generic_ingredient_in_generic_recipe", Base.metadata,
-    Column("recipe_id", Integer, ForeignKey("generic_recipe.id"), primary_key=True),
-    Column("ingredient_id", Integer, ForeignKey("generic_ingredient.id"), primary_key=True)
-)
-
-generic_ingredient_in_specific_recipe = Table(
-    "generic_ingredient_in_specific_recipe", Base.metadata,
-    Column("recipe_id", Integer, ForeignKey("specific_recipe.id"), primary_key=True),
-    Column("ingredient_id", Integer, ForeignKey("generic_ingredient.id"), primary_key=True)
-)
-
-specific_ingredient_in_specific_recipe = Table(
-    "specific_ingredient_in_specific_recipe", Base.metadata,
-    Column("recipe_id", Integer, ForeignKey("specific_recipe.id"), primary_key=True),
-    Column("ingredient_id", Integer, ForeignKey("specific_ingredient.id"), primary_key=True)
-)
-
-food_in_meal = Table(
-    "food_in_meal", Base.metadata,
-    Column("food_id", Integer, ForeignKey("food.id"), primary_key=True),
-    Column("meal_id", Integer, ForeignKey("meal.id"), primary_key=True)
-)
-
-profile_in_meal = Table(
-    "profile_in_meal", Base.metadata,
-    Column("profile_id", Integer, ForeignKey("profile.id"), primary_key=True),
-    Column("meal_id", Integer, ForeignKey("meal.id"), primary_key=True)
-)
-
-# ==========================================
-# 1. TABLAS MAESTRAS (Nivel 0)
-# ==========================================
+# ============================== USERS ==============================
 
 class Account(Base):
     __tablename__ = "account"
@@ -86,39 +38,6 @@ class ProfileSettings(Base):
     waist_measure = Column(Numeric(5, 2))
     hips_measure = Column(Numeric(5, 2))
 
-class FoodFamily(Base):
-    __tablename__ = "food_family"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    self_name = Column(String(100), nullable=False)
-
-class RecipeTag(Base):
-    __tablename__ = "recipe_tag"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    self_name = Column(String(50), nullable=False, unique=True)
-
-# ==========================================
-# 2. ENTIDADES DE ALIMENTOS e INGREDIENTES
-# ==========================================
-
-class Food(Base):
-    __tablename__ = "food"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-
-class GenericIngredient(Base):
-    __tablename__ = "generic_ingredient"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    self_name = Column(String(100))
-    food_family_id = Column(Integer, ForeignKey("food_family.id"), nullable=False)
-    food_id = Column(Integer, ForeignKey("food.id"), nullable=False)
-
-class SpecificIngredient(Base):
-    __tablename__ = "specific_ingredient"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    account_id = Column(Integer, ForeignKey("account.id"), nullable=False)
-    self_name = Column(String(100), nullable=False)
-    food_family_id = Column(Integer, ForeignKey("food_family.id"))
-    food_id = Column(Integer, ForeignKey("food.id"))
-
 class FoodFamilyBan(Base):
     __tablename__ = "food_family_ban"
     profile_id = Column(Integer, ForeignKey("profile.id"), primary_key=True)
@@ -131,9 +50,68 @@ class GenericIngredientBan(Base):
     ingredient_id = Column(Integer, ForeignKey("generic_ingredient.id"), primary_key=True)
     is_blacklisted = Column(Boolean)
 
-# ==========================================
-# 3. RECETAS (Genéricas y Específicas)
-# ==========================================
+# ============================== MEALS ==============================
+
+class Meal(Base):
+    __tablename__ = "meal"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    acc_id = Column(Integer, ForeignKey("account.id"))
+    eating_moment = Column(
+        Enum("breakfast", "mid_morning_snack", "lunch", "afternoon_snack", "dinner"),
+        nullable=False,
+        default="lunch"
+    )
+    eaten = Column(Boolean)
+    datetime = Column(DateTime)
+
+food_in_meal = Table(
+    "food_in_meal", Base.metadata,
+    Column("food_id", Integer, ForeignKey("food.id"), primary_key=True),
+    Column("meal_id", Integer, ForeignKey("meal.id"), primary_key=True)
+)
+
+profile_in_meal = Table(
+    "profile_in_meal", Base.metadata,
+    Column("profile_id", Integer, ForeignKey("profile.id"), primary_key=True),
+    Column("meal_id", Integer, ForeignKey("meal.id"), primary_key=True)
+)
+
+# ============================== RECIPES ==============================
+
+recipe_tag_in_generic = Table(
+    "recipe_tag_in_generic", Base.metadata,
+    Column("generic_recipe_id", Integer, ForeignKey("generic_recipe.id"), primary_key=True),
+    Column("recipe_tag_id", Integer, ForeignKey("recipe_tag.id"), primary_key=True)
+)
+
+recipe_tag_in_specific = Table(
+    "recipe_tag_in_specific", Base.metadata,
+    Column("specific_recipe_id", Integer, ForeignKey("specific_recipe.id"), primary_key=True),
+    Column("recipe_tag_id", Integer, ForeignKey("recipe_tag.id"), primary_key=True)
+)
+
+generic_ingredient_in_generic_recipe = Table(
+    "generic_ingredient_in_generic_recipe", Base.metadata,
+    Column("recipe_id", Integer, ForeignKey("generic_recipe.id"), primary_key=True),
+    Column("ingredient_id", Integer, ForeignKey("generic_ingredient.id"), primary_key=True)
+)
+
+generic_ingredient_in_specific_recipe = Table(
+    "generic_ingredient_in_specific_recipe", Base.metadata,
+    Column("recipe_id", Integer, ForeignKey("specific_recipe.id"), primary_key=True),
+    Column("ingredient_id", Integer, ForeignKey("generic_ingredient.id"), primary_key=True)
+)
+
+specific_ingredient_in_specific_recipe = Table(
+    "specific_ingredient_in_specific_recipe", Base.metadata,
+    Column("recipe_id", Integer, ForeignKey("specific_recipe.id"), primary_key=True),
+    Column("ingredient_id", Integer, ForeignKey("specific_ingredient.id"), primary_key=True)
+)
+
+class RecipeTag(Base):
+    __tablename__ = "recipe_tag"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    self_name = Column(String(50), nullable=False, unique=True)
 
 class GenericRecipe(Base):
     __tablename__ = "generic_recipe"
@@ -141,6 +119,8 @@ class GenericRecipe(Base):
     food_id = Column(Integer, ForeignKey("food.id"), nullable=False)
     self_name = Column(String(150), nullable=False)
     cheff_advice = Column(Text)
+
+    food_node = relationship("Food", back_populates="generic_recipe")
 
 class SpecificRecipe(Base):
     __tablename__ = "specific_recipe"
@@ -150,9 +130,7 @@ class SpecificRecipe(Base):
     self_name = Column(String(150), nullable=False)
     chef_advice = Column(Text)
 
-# ==========================================
-# 4. PASOS DE RECETA
-# ==========================================
+    food_node = relationship("Food", back_populates="specific_recipe")
 
 class GenericRecipeStep(Base):
     __tablename__ = "generic_recipe_step"
@@ -168,18 +146,40 @@ class SpecificRecipeStep(Base):
     instruction = Column(Text, nullable=False)
     estimated_time = Column(Integer)  # In minutes
 
-# ==========================================
-# 6. MEAL TABLES
-# ==========================================
+# ============================== INGREDIENTS ==============================
 
-class Meal(Base):
-    __tablename__ = "meal"
+class Food(Base):
+    __tablename__ = "food"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    acc_id = Column(Integer, ForeignKey("account.id"))
-    eating_moment = Column(
-        Enum("breakfast", "mid_morning_snack", "lunch", "afternoon_snack", "dinner"),
-        nullable=False,
-        default="lunch"
-    )
-    eaten = Column(Boolean)
-    datetime = Column(DateTime)
+
+    # Define the relations towards the possible "childs"
+    generic_ingredient = relationship("GenericIngredient", back_populates="food_node", uselist=False)
+    specific_ingredient = relationship("SpecificIngredient", back_populates="food_node", uselist=False)
+    generic_recipe = relationship("GenericRecipe", back_populates="food_node", uselist=False)
+    specific_recipe = relationship("SpecificRecipe", back_populates="food_node", uselist=False)
+
+class FoodFamily(Base):
+    __tablename__ = "food_family"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    self_name = Column(String(100), nullable=False)
+
+class GenericIngredient(Base):
+    __tablename__ = "generic_ingredient"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    self_name = Column(String(100))
+    food_family_id = Column(Integer, ForeignKey("food_family.id"), nullable=False)
+    food_id = Column(Integer, ForeignKey("food.id"), nullable=False)
+
+    food_family = relationship("FoodFamily")
+    food_node = relationship("Food", back_populates="generic_ingredient")
+
+class SpecificIngredient(Base):
+    __tablename__ = "specific_ingredient"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    account_id = Column(Integer, ForeignKey("account.id"), nullable=False)
+    self_name = Column(String(100), nullable=False)
+    food_family_id = Column(Integer, ForeignKey("food_family.id"))
+    food_id = Column(Integer, ForeignKey("food.id"))
+
+    food_family = relationship("FoodFamily")
+    food_node = relationship("Food", back_populates="specific_ingredient")

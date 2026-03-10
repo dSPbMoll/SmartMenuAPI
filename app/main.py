@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Importamos los routers de los archivos que crearás después
-# Suponiendo que tus archivos están en una carpeta llamada 'routers'
-from app.api import generic_recipe, generic_ingredient, account, food_family, generic_recipe_step, recipe_tag
+from app.api import (
+    generic_recipe, generic_ingredient, account, food_family,
+    recipe_tag, specific_ingredient, specific_recipe, food, meal
+)
 
 app = FastAPI(
     title="Smart Menu",
@@ -11,8 +12,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# 1. Configuración de CORS
-# Mantenemos lo que ya tenías, que es vital para que el Frontend conecte
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,21 +19,24 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# 2. Inclusión de Rutas (Modularización)
-# Aquí es donde "limpiamos" el main.py
+
+app.include_router(account.router)
+
+app.include_router(food_family.router)
+app.include_router(food.router)
+
 app.include_router(recipe_tag.router)
 app.include_router(generic_recipe.router)
-app.include_router(generic_recipe_step.router)
 app.include_router(generic_ingredient.router)
-app.include_router(account.router)
-app.include_router(food_family.router)
-# app.include_router(users.router)
+app.include_router(specific_recipe.router)
+app.include_router(specific_ingredient.router)
 
-# 3. Endpoint de salud (Opcional pero recomendado)
+app.include_router(meal.router)
+
 @app.get("/", tags=["Health Check"])
 async def root():
     return {
-        "status": "online",
-        "message": "Wellcome to the SMartMenu API",
+        "status": "Online",
+        "message": "Wellcome to the SmartMenu API",
         "docs": "/docs"
     }
