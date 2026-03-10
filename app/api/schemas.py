@@ -126,6 +126,9 @@ class genericIngredientIdList(BaseModel):
 class specificIngredientIdList(BaseModel):
     ids: List[int]
 
+class ingredientNameListAI(BaseModel):
+    ingredient_list: List[str]
+
 # ------ Food
 
 class FoodIdList(BaseModel):

@@ -3,6 +3,11 @@ from sqlalchemy import insert, delete
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.api import schemas, models
+from google import genai
+from google.genai import types
+import json
+import os
+from dotenv import load_dotenv
 
 router = APIRouter(
     prefix="/userApi/v1/specific-recipe",
@@ -243,3 +248,56 @@ async def get_all_specific_recipe_steps(specificRecipeId: int, db: Session = Dep
     
     # Steps can be a void list
     return steps
+
+# ================================ AI ================================
+
+load_dotenv()
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY"),
+    http_options={'api_version': 'v1beta'} 
+)
+
+@router.post("/ai")
+async def generate_specific_recipe_through_ai(
+    payload: schemas.ingredientNameListAI, 
+    db: Session = Depends(get_db)
+):
+    '''
+    for m in client.models.list():
+        print(f"Modelo disponible: {m.name}")
+    '''
+
+    # 1. Preparamos la lista de ingredientes para el prompt
+    ingredients_str = ", ".join(payload.ingredient_list)
+    
+    # 2. Creamos el Prompt (Instrucciones precisas)
+    prompt = f"""
+    Eres un chef experto. Basándote SOLO en estos ingredientes (no debes usarlos todos necesariamente):
+    {ingredients_str}, genera una receta creativa. 
+    Responde ÚNICAMENTE en formato JSON con la siguiente estructura:
+    {{
+        "self_name": "Nombre de la receta",
+        "chef_advice": "Un consejo breve del chef",
+        "steps": [
+            {{"step_number": 1, "instruction": "descripción", "estimated_time": 5}},
+            ...
+        ]
+    }}
+    No añadas texto extra fuera del JSON.
+    """
+
+    try:
+        # Cambiamos el modelo a la versión flash estándar (sin el "native-audio")
+        response = client.models.generate_content(
+            model="gemini-2.5-flash", # <--- Prueba este nombre simplificado
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+        )
+        return json.loads(response.text)
+
+    except Exception as e:
+        print(f"DEBUG FINAL: {e}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+

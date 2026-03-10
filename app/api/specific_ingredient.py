@@ -1,7 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.api import schemas, models
+from google import genai
+from google.genai import types
+import json
+import os
+from dotenv import load_dotenv
 
 router = APIRouter(
     prefix="/userApi/v1/specific-ingredient",
@@ -72,5 +77,36 @@ async def delete_specific_ingredient(specificIngredientId: int, db: Session = De
         )
 
     db.delete(db_specific_ingredient)
-
     db.commit()
+
+# ===================================== AI ========================================
+
+load_dotenv()
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY"),
+    http_options={'api_version': 'v1beta'} 
+)
+
+@router.post("/ai-detect")
+async def detect_ingredients(file: UploadFile = File(...)):
+    # 1. Leer los bytes de la imagen que envía el móvil
+    image_bytes = await file.read()
+    
+    # 2. Preparar el contenido para Gemini (Texto + Imagen)
+    prompt = [
+        "Identifica todos los ingredientes de cocina presentes en esta imagen. "
+        "Devuelve una lista simple de strings en formato JSON: {'ingredients': ['item1', 'item2']}",
+        types.Part.from_bytes(data=image_bytes, mime_type=file.content_type)
+    ]
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash", # <--- Prueba este nombre simplificado
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

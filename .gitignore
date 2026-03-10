@@ -1,0 +1,12 @@
+# Secrets and Configuration
+.env
+
+# Virtual Enviroments (Heavy and PC-specific)
+venv/
+env/
+__pycache__/
+*.py[cod]
+
+# System Files
+.DS_Store
+Thumbs.db
