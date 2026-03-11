@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import insert, delete
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.api import schemas, models
+from app import schemas
 from google import genai
 from google.genai import types
 import json
 import os
 from dotenv import load_dotenv
+
+from app import models
 
 router = APIRouter(
     prefix="/userApi/v1/specific-recipe",
@@ -17,29 +19,42 @@ router = APIRouter(
 # ================================ SPECIFIC RECIPES ================================ 
 
 @router.post("/", status_code=201)
-async def create_specific_recipe(recipe: schemas.SpecificRecipeCreate, db: Session = Depends(get_db)):
-    new_recipe = models.SpecificRecipe(
-        account_id = recipe.account_id,
-        self_name = recipe.name,
-        cheff_advice = recipe.cheff_advice
-    )
-    
-    db.add(new_recipe)
-    db.flush()
-
+async def create_specific_recipe(
+    recipe: schemas.SpecificRecipeCreate, 
+    db: Session = Depends(get_db)
+):
     try:
+        new_food = models.Food()
+        db.add(new_food)
+
+        db.flush() 
+
+        new_recipe = models.SpecificRecipe(
+            account_id = recipe.account_id,
+            food_id = new_food.id,
+            self_name = recipe.name,
+            chef_advice = recipe.cheff_advice
+        )
+        
+        db.add(new_recipe)
+
         db.commit()
         db.refresh(new_recipe)
+
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail=f"Error while saving the recipe: {str(e)}")
+        print(f"Error en create_specific_recipe: {e}")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Error while saving the recipe and food record: {str(e)}"
+        )
     
     return {
         "id": new_recipe.id,
         "foodId": new_recipe.food_id,
         "accountId": new_recipe.account_id,
         "name": new_recipe.self_name,
-        "cheffAdvice": new_recipe.cheff_advice
+        "chefAdvice": new_recipe.chef_advice
     }
 
 @router.get("/{specificRecipeId}")

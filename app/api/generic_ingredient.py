@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.api import schemas, models
+from app import schemas
+from app import models
 
 router = APIRouter(
     prefix="/userApi/v1/generic-ingredient",
@@ -14,21 +15,28 @@ async def create_generic_ingredient(
     ingredient: schemas.GenericIngredientCreate,
     db: Session = Depends(get_db)
 ):
-    new_ingredient = models.GenericIngredient(
-        self_name = ingredient.name,
-        food_family_id = ingredient.food_family_id
-    )
-    
-    db.add(new_ingredient)
-    
     try:
+        new_food = models.Food()
+        db.add(new_food)
+        
+        db.flush() 
+
+        new_ingredient = models.GenericIngredient(
+            self_name = ingredient.name,
+            food_family_id = ingredient.food_family_id,
+            food_id = new_food.id
+        )
+        
+        db.add(new_ingredient)
+        
         db.commit()
         db.refresh(new_ingredient)
+        
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=400, 
-            detail=f"Error al guardar el ingrediente: {str(e)}"
+            detail=f"Error while saving the generic ingredient: {str(e)}"
         )
     
     return {

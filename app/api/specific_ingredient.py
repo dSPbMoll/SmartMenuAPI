@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.api import schemas, models
+from app import schemas
 from google import genai
 from google.genai import types
 import json
 import os
 from dotenv import load_dotenv
+
+from app import models
 
 router = APIRouter(
     prefix="/userApi/v1/specific-ingredient",
@@ -18,22 +20,29 @@ async def create_specific_ingredient(
     ingredient: schemas.SpecificIngredientCreate,
     db: Session = Depends(get_db)
 ):
-    new_ingredient = models.SpecificIngredient(
-        self_name = ingredient.name,
-        food_family_id = ingredient.food_family_id,
-        account_id = ingredient.account_id
-    )
-    
-    db.add(new_ingredient)
-    
     try:
+        new_food = models.Food()
+        db.add(new_food)
+
+        db.flush() 
+
+        new_ingredient = models.SpecificIngredient(
+            self_name = ingredient.name,
+            food_family_id = ingredient.food_family_id,
+            account_id = ingredient.account_id,
+            food_id = new_food.id
+        )
+        
+        db.add(new_ingredient)
+        
         db.commit()
         db.refresh(new_ingredient)
+        
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=400, 
-            detail=f"Error al guardar el ingrediente: {str(e)}"
+            detail=f"Error al guardar el ingrediente y su registro food: {str(e)}"
         )
     
     return {

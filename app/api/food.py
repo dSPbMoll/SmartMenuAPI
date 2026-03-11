@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
-from app.api import models
+from app import models
 
 router = APIRouter(
     prefix="/userApi/v1/food",

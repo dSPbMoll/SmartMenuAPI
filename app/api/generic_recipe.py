@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import insert, delete
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.api import schemas, models
+from app import schemas
+from app import models
 
 router = APIRouter(
     prefix="/userApi/v1/generic-recipe",
@@ -12,21 +13,33 @@ router = APIRouter(
 # ================================ GENERIC RECIPES ================================ 
 
 @router.post("/", status_code=201)
-async def create_generic_recipe(recipe: schemas.GenericRecipeCreate, db: Session = Depends(get_db)):
-    new_recipe = models.GenericRecipe(
-        self_name = recipe.name,
-        cheff_advice = recipe.cheff_advice
-    )
-    
-    db.add(new_recipe)
-    db.flush()
-
+async def create_generic_recipe(
+    recipe: schemas.GenericRecipeCreate, 
+    db: Session = Depends(get_db)
+):
     try:
+        new_food = models.Food()
+        db.add(new_food)
+
+        db.flush() 
+
+        new_recipe = models.GenericRecipe(
+            self_name = recipe.name,
+            food_id = new_food.id,
+            cheff_advice = recipe.cheff_advice
+        )
+        
+        db.add(new_recipe)
+
         db.commit()
         db.refresh(new_recipe)
+
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail=f"Error while saving the recipe: {str(e)}")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Error while saving the generic recipe and food record: {str(e)}"
+        )
     
     return {
         "id": new_recipe.id,
