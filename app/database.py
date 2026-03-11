@@ -13,7 +13,7 @@ if not DATABASE_URL:
 
 connect_args = {
     "ssl": {
-        "ca": "./isrgrootx1.pem" 
+        "ca": "./db_ssl_certificate.pem" 
     }
 }
 
