@@ -108,26 +108,7 @@ async def create_profile(profile: schemas.ProfileCreate, accountId: int,  db: Se
 @router.get("/{accountId}/profile/{profileId}")
 async def get_profile(accountId: int, profileId: int, db: Session = Depends(get_db)):
     
-    db_account = db.query(models.Account).filter(
-        models.Account.id == accountId
-    ).first()
-
-    if db_account is None:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"Account with ID {accountId} not found"
-        )
-    
-    db_profile = db.query(models.Profile).filter(
-        models.Account.id == accountId, 
-        models.Profile.id == profileId
-    ).first()
-
-    if db_profile is None:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"Profile with ID {profileId} pertaining to account with ID {accountId} not found"
-        )
+    db_profile = validate_profile_ownership(accountId, profileId, db)
 
     return {
         "id": db_profile.id,
@@ -138,11 +119,23 @@ async def get_profile(accountId: int, profileId: int, db: Session = Depends(get_
 @router.delete("/{accountId}/profile/{profileId}")
 async def delete_profile(accountId: int, profileId: int, db: Session = Depends(get_db)):
     
+    db_profile = validate_profile_ownership(accountId, profileId, db)
+
+    db.delete(db_profile)
+    db.commit()
+
+    return {
+        "message": f"Profile with ID {profileId} successfully deleted" 
+    }
+
+# ================================= AUX FUNCTIONS =================================
+
+def validate_profile_ownership(accountId: int, profileId: int, db: Session):
     db_account = db.query(models.Account).filter(
         models.Account.id == accountId
     ).first()
-
-    if db_account is None:
+    
+    if not db_account:
         raise HTTPException(
             status_code=404, 
             detail=f"Account with ID {accountId} not found"
@@ -150,18 +143,13 @@ async def delete_profile(accountId: int, profileId: int, db: Session = Depends(g
     
     db_profile = db.query(models.Profile).filter(
         models.Profile.id == profileId,
-        models.Account.id == accountId
+        models.Profile.account_id == accountId
     ).first()
 
-    if db_profile is None:
+    if not db_profile:
         raise HTTPException(
             status_code=404, 
-            detail=f"Profile with ID {profileId} pertaining to account with ID {accountId} not found"
+            detail=f"Profile with ID {profileId} belonging to account {accountId} not found"
         )
-
-    db.delete(db_profile)
-    db.commit();
-
-    return {
-        "message": f"Profile with ID {profileId} successfuly deleted" 
-    }
+    
+    return db_profile

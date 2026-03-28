@@ -3,6 +3,11 @@ from typing import List, Optional
 from enum import Enum
 from datetime import datetime
 
+# ============================== AUX ================================
+
+class IdList(BaseModel):
+    ids: List[int]
+
 # ============================== USERS ==============================
 
 class AccountCreate(BaseModel):
@@ -69,9 +74,6 @@ class RecipeTagCreate(BaseModel):
 class RecipeTag(RecipeTagCreate):
     id: int
 
-class RecipeTagIdList(BaseModel):
-    ids: List[int]
-
 # -------------- RECIPES
 
 class GenericRecipeCreate(BaseModel):
@@ -119,19 +121,10 @@ class SpecificRecipeStepList(BaseModel):
 
 # ============================== INGREDIENTS ==============================
 
-class genericIngredientIdList(BaseModel):
-    ids: List[int]
-
-class specificIngredientIdList(BaseModel):
-    ids: List[int]
-
 class ingredientNameListAI(BaseModel):
     ingredient_list: List[str]
 
 # ------ Food
-
-class FoodIdList(BaseModel):
-    ids: List[int]
 
 class Food(BaseModel):
     id: int

@@ -102,7 +102,7 @@ async def delete_meal(mealId: int, db: Session = Depends(get_db)):
 # ================================ FOODS ================================ 
 
 @router.post("/{mealId}/foods")
-async def set_foods_to_meal(mealId: int, foodIds: schemas.FoodIdList, db: Session = Depends(get_db)):
+async def set_foods_to_meal(mealId: int, foodIds: schemas.IdList, db: Session = Depends(get_db)):
 
     db_meal = db.query(models.Meal).filter(
         models.Meal.id == mealId

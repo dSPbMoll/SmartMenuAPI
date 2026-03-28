@@ -140,7 +140,7 @@ async def delete_specific_recipe(specificRecipeId: int, db: Session = Depends(ge
 # ================================ RECIPE TAGS ================================ 
 
 @router.post("/{specificRecipeId}/tags")
-async def set_tags_to_specific_recipe(specificRecipeId: int, tags: schemas.RecipeTagIdList, db: Session = Depends(get_db)):
+async def set_tags_to_specific_recipe(specificRecipeId: int, tags: schemas.IdList, db: Session = Depends(get_db)):
 
     recipe = db.query(models.SpecificRecipe).filter(
         models.SpecificRecipe.id == specificRecipeId
@@ -169,8 +169,8 @@ async def set_tags_to_specific_recipe(specificRecipeId: int, tags: schemas.Recip
 @router.post("/{specificRecipeId}/ingredients")
 async def set_ingredients_to_specific_recipe(
     specificRecipeId: int,
-    genericIngredients: schemas.genericIngredientIdList,
-    specificIngredients: schemas.specificIngredientIdList,
+    genericIngredients: schemas.IdList,
+    specificIngredients: schemas.IdList,
     db: Session = Depends(get_db)
     ):
 
