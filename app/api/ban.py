@@ -9,7 +9,7 @@ router = APIRouter(
     prefix="/userApi/v1/ban",
     tags=["Bans"]
 )
-
+'''
 # ================================= FOOD FAMILY BAN =================================
 
 @router.post("/{accountId}/profile/{profileId}/bans", status_code=201)
@@ -92,3 +92,4 @@ async def get_bans(
         "bannedFoodFamilies": [family.self_name for family in db_ff_bans],
         "bannedGenericIngredients": [generic_ingredient.self_name for generic_ingredient in db_gi_bans]
     }
+'''
