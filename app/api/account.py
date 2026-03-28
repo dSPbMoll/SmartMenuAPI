@@ -83,18 +83,17 @@ async def delete_account(accountId: int, db: Session = Depends(get_db)):
 # ================================= PROFILES =================================
 
 @router.post("/{accountId}/profile", status_code=201)
-async def create_profile(profile: schemas.ProfileCreate, db: Session = Depends(get_db)):
+async def create_profile(profile: schemas.ProfileCreate, accountId: int,  db: Session = Depends(get_db)):
 
     new_profile = models.Profile(
         self_name = profile.name,
-        account_id = profile.account_id
+        account_id = accountId
     )
     
     db.add(new_profile)
 
     try:
         db.commit()
-        db.refresh(new_profile)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error while creating the profile: {str(e)}")
     
