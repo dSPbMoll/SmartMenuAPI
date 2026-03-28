@@ -102,8 +102,15 @@ async def create_profile(profile: schemas.ProfileCreate, accountId: int,  db: Se
     return {
         "id": new_profile.id,
         "accountId": new_profile.account_id,
-        "profileName": new_profile.name
+        "profileName": new_profile.self_name
     }
+'''
+class Profile(ProfileCreate):
+    id: int
+
+    account: Account
+    model_config = ConfigDict(from_attributes=True)
+'''
 
 @router.get("/{accountId}/profile/{profileId}")
 async def get_profile(accountId: int, profileId: int, db: Session = Depends(get_db)):
