@@ -94,7 +94,9 @@ async def create_profile(profile: schemas.ProfileCreate, accountId: int,  db: Se
 
     try:
         db.commit()
+        db.refresh()
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=400, detail=f"Error while creating the profile: {str(e)}")
     
     return {
