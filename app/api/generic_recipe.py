@@ -125,7 +125,7 @@ async def delete_generic_recipe(genericRecipeId: int, db: Session = Depends(get_
 # ================================ RECIPE TAGS ================================ 
 
 @router.post("/{genericRecipeId}/tags")
-async def set_tags_to_generic_recipe(genericRecipeId: int, tags: schemas.RecipeTagIdList, db: Session = Depends(get_db)):
+async def set_tags_to_generic_recipe(genericRecipeId: int, tags: schemas.IdList, db: Session = Depends(get_db)):
 
     recipe = db.query(models.GenericRecipe).filter(
         models.GenericRecipe.id == genericRecipeId
@@ -154,7 +154,7 @@ async def set_tags_to_generic_recipe(genericRecipeId: int, tags: schemas.RecipeT
 @router.post("/{genericRecipeId}/ingredients")
 async def set_ingredients_to_generic_recipe(
     genericRecipeId: int,
-    ingredients: schemas.genericIngredientIdList,
+    ingredients: schemas.IdList,
     db: Session = Depends(get_db)
     ):
 
