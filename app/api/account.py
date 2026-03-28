@@ -104,13 +104,6 @@ async def create_profile(profile: schemas.ProfileCreate, accountId: int,  db: Se
         "accountId": new_profile.account_id,
         "profileName": new_profile.self_name
     }
-'''
-class Profile(ProfileCreate):
-    id: int
-
-    account: Account
-    model_config = ConfigDict(from_attributes=True)
-'''
 
 @router.get("/{accountId}/profile/{profileId}")
 async def get_profile(accountId: int, profileId: int, db: Session = Depends(get_db)):
@@ -126,19 +119,20 @@ async def get_profile(accountId: int, profileId: int, db: Session = Depends(get_
         )
     
     db_profile = db.query(models.Profile).filter(
+        models.Account.id == accountId, 
         models.Profile.id == profileId
     ).first()
 
     if db_profile is None:
         raise HTTPException(
             status_code=404, 
-            detail=f"Profile with ID {profileId} not found"
+            detail=f"Profile with ID {profileId} pertaining to account with ID {accountId} not found"
         )
 
     return {
         "id": db_profile.id,
         "accountId": db_profile.account_id,
-        "name": db_profile.name
+        "name": db_profile.self_name
     }
 
 @router.delete("/{accountId}/profile/{profileId}")
@@ -155,13 +149,14 @@ async def delete_profile(accountId: int, profileId: int, db: Session = Depends(g
         )
     
     db_profile = db.query(models.Profile).filter(
-        models.Profile.id == profileId
+        models.Profile.id == profileId,
+        models.Account.id == accountId
     ).first()
 
     if db_profile is None:
         raise HTTPException(
             status_code=404, 
-            detail=f"Profile with ID {profileId} not found"
+            detail=f"Profile with ID {profileId} pertaining to account with ID {accountId} not found"
         )
 
     db.delete(db_profile)
