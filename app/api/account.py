@@ -106,7 +106,7 @@ async def create_profile(profile: schemas.ProfileCreate, accountId: int,  db: Se
     }
 
 @router.get("/{accountId}/profile/{profileId}")
-async def get_profiles(accountId: int, profileId: int, db: Session = Depends(get_db)):
+async def get_profile(accountId: int, profileId: int, db: Session = Depends(get_db)):
     
     db_profile = validate_profile_ownership(accountId, profileId, db)
 

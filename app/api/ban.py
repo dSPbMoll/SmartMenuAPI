@@ -46,10 +46,10 @@ async def set_bans(
 
         new_bans = []
         for ff_id in existing_ff_set:
-            new_bans.append(models.FoodFamilyBan(profile_id=profileId, food_family_id=ff_id, account_id=accountId))
+            new_bans.append(models.FoodFamilyBan(profile_id=profileId, food_family_id=ff_id))
         
         for gi_id in existing_gi_set:
-            new_bans.append(models.GenericIngredientBan(profile_id=profileId, generic_ingredient_id=gi_id, account_id=accountId))
+            new_bans.append(models.GenericIngredientBan(profile_id=profileId, generic_ingredient_id=gi_id))
         
         db.add_all(new_bans)
         db.commit()
