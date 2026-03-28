@@ -87,7 +87,7 @@ async def create_profile(profile: schemas.ProfileCreate, db: Session = Depends(g
 
     new_profile = models.Profile(
         self_name = profile.name,
-        account_id = profile.id
+        account_id = profile.account_id
     )
     
     db.add(new_profile)

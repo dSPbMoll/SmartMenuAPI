@@ -15,7 +15,6 @@ class Account(AccountCreate):
 
 class ProfileCreate(BaseModel):
     name: str
-    account_id: int
 
 class Profile(ProfileCreate):
     id: int
