@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import schemas
 from .account import validate_profile_ownership
-
 from app import models
 
 router = APIRouter(
@@ -26,19 +25,24 @@ async def set_bans(
     existing_families = db.query(models.FoodFamily.id).filter(
         models.FoodFamily.id.in_(foodFamilyIds.ids)
     ).all()
-    existing_ff_set = {f.id for f in existing_families}
+    existing_ff_set = {f[0] for f in existing_families}
 
     existing_ingredients = db.query(models.GenericIngredient.id).filter(
         models.GenericIngredient.id.in_(genericIngredientIds.ids)
     ).all()
-    existing_gi_set = {i.id for i in existing_ingredients}
+    existing_gi_set = {i[0] for i in existing_ingredients}
 
     failed_family_ids = [id for id in foodFamilyIds.ids if id not in existing_ff_set]
     failed_ingredient_ids = [id for id in genericIngredientIds.ids if id not in existing_gi_set]
 
     try:
-        db.query(models.FoodFamilyBan).filter(models.FoodFamilyBan.profile_id == profileId).delete()
-        db.query(models.GenericIngredientBan).filter(models.GenericIngredientBan.profile_id == profileId).delete()
+        db.query(models.FoodFamilyBan).filter(
+            models.FoodFamilyBan.profile_id == profileId
+        ).delete(synchronize_session=False)
+
+        db.query(models.GenericIngredientBan).filter(
+            models.GenericIngredientBan.profile_id == profileId
+        ).delete(synchronize_session=False)
 
         new_bans = []
         for ff_id in existing_ff_set:
@@ -56,7 +60,6 @@ async def set_bans(
 
     return {
         "status": "Success" if not (failed_family_ids or failed_ingredient_ids) else "Partial Success",
-        "message": "Bans updated",
         "failed_family_ids": failed_family_ids,
         "failed_ingredient_ids": failed_ingredient_ids
     }
