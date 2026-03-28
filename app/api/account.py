@@ -106,7 +106,7 @@ async def create_profile(profile: schemas.ProfileCreate, accountId: int,  db: Se
     }
 
 @router.get("/{accountId}/profile/{profileId}")
-async def get_profile(accountId: int, profileId: int, db: Session = Depends(get_db)):
+async def get_profiles(accountId: int, profileId: int, db: Session = Depends(get_db)):
     
     db_profile = validate_profile_ownership(accountId, profileId, db)
 
@@ -115,6 +115,22 @@ async def get_profile(accountId: int, profileId: int, db: Session = Depends(get_
         "accountId": db_profile.account_id,
         "name": db_profile.self_name
     }
+
+@router.get("/{accountId}/profiles/")
+async def get_profiles(accountId: int, db: Session = Depends(get_db)):
+    
+    db_profiles = db.query(models.Profile).filter(
+        models.Profile.account_id == accountId
+    ).all()
+
+    return [
+        {
+            "id": profile.id,
+            "accountId": profile.account_id,
+            "name": profile.self_name
+        } 
+        for profile in db_profiles
+    ]
 
 @router.delete("/{accountId}/profile/{profileId}")
 async def delete_profile(accountId: int, profileId: int, db: Session = Depends(get_db)):
