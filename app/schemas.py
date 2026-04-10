@@ -33,7 +33,7 @@ class DietType(BaseModel):
 class Goal(BaseModel):
     name: str
 
-class ProfileSettings(BaseModel):
+class PorfileSettingsCreate(BaseModel):
     profile_id: int
     diet_type_id: int
     goalId: int
@@ -42,6 +42,9 @@ class ProfileSettings(BaseModel):
     height: float
     waist_measure: float
     hips_measure: float
+
+class ProfileSettings(PorfileSettingsCreate):
+    pass
 
 # ============================== MEALS ==============================
 

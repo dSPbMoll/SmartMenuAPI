@@ -144,6 +144,75 @@ async def delete_profile(accountId: int, profileId: int, db: Session = Depends(g
         "message": f"Profile with ID {profileId} successfully deleted" 
     }
 
+@router.get("/{accountId}/profile/{profileId}/settings", status_code=201)
+async def get_profile_settings(accountId: int, profileId:int, db: Session = Depends(get_db)):
+
+    validate_profile_ownership(accountId, profileId, db)
+
+    db_settings = db.query(models.ProfileSettings).filter(
+        models.ProfileSettings.profile_id == profileId
+    ).first()
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error while setting the profile's settings: {str(e)}")
+    
+    return {
+        "profile_id": db_settings.profile_id,
+        "diet_type_id": db_settings.diet_type_id,
+        "goal_id": db_settings.goal_id,
+        "birth_date": db_settings.birth_date,
+        "weight": db_settings.weight,
+        "height": db_settings.height,
+        "waist_measure": db_settings.waist_measure,
+        "hips_measure": db_settings.hips_measure
+    }
+
+@router.post("/{accountId}/profile/{profileId}/settings", status_code=201)
+async def set_profile_settings(profileSettings: schemas.ProfileSettingsCreate, accountId: int, profileId:int, db: Session = Depends(get_db)):
+
+    validate_profile_ownership(accountId, profileId, db)
+
+    new_settings = models.ProfileSettings(
+        profile_id = profileSettings.profileId,
+        diet_type_id = profileSettings.dietTypeId,
+        goal_id = profileSettings.goalId,
+        birth_date = profileSettings.birthDate,
+        weight = profileSettings.weight,
+        height = profileSettings.height,
+        waist_measure = profileSettings.waistMeasure,
+        hips_measure = profileSettings.hipsMeasure
+    )
+
+    db_settings = db.query(models.ProfileSettings).filter(
+        models.ProfileSettings.profile_id == profileId
+    ).first()
+
+    if (db_settings):
+        db.delete(db_settings)
+
+    db.add(new_settings)
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error while setting the profile's settings: {str(e)}")
+    
+    return {
+        "profile_id": new_settings.profile_id,
+        "diet_type_id": new_settings.diet_type_id,
+        "goal_id": new_settings.goal_id,
+        "birth_date": new_settings.birth_date,
+        "weight": new_settings.weight,
+        "height": new_settings.height,
+        "waist_measure": new_settings.waist_measure,
+        "hips_measure": new_settings.hips_measure
+    }
+
+
 # ================================= AUX FUNCTIONS =================================
 
 def validate_profile_ownership(accountId: int, profileId: int, db: Session):
