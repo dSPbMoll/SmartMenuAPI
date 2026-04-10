@@ -46,6 +46,10 @@ class PorfileSettingsCreate(BaseModel):
 class ProfileSettings(PorfileSettingsCreate):
     pass
 
+class Login(BaseModel):
+    email: EmailStr
+    password: str
+
 # ============================== MEALS ==============================
 
 class EatingMoment(str, Enum):

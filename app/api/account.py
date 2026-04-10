@@ -80,6 +80,19 @@ async def delete_account(accountId: int, db: Session = Depends(get_db)):
         "message": f"Account with ID {accountId} successfuly deleted" 
     }
 
+@router.get("/{login}")
+async def login(data: schemas.Login, db: Session = Depends(get_db)):
+    
+    db_user = db.query(models.Account).filter(
+        data.email == models.Account.email,
+        data.password == models.Account.password
+    ).first()
+
+    if db_user is None:
+        return {"result": "NOT OK"}
+    else:
+        return {"result": "OK"}
+
 # ================================= PROFILES =================================
 
 @router.post("/{accountId}/profile", status_code=201)
@@ -144,34 +157,13 @@ async def delete_profile(accountId: int, profileId: int, db: Session = Depends(g
         "message": f"Profile with ID {profileId} successfully deleted" 
     }
 
-@router.get("/{accountId}/profile/{profileId}/settings", status_code=201)
-async def get_profile_settings(accountId: int, profileId:int, db: Session = Depends(get_db)):
-
-    validate_profile_ownership(accountId, profileId, db)
-
-    db_settings = db.query(models.ProfileSettings).filter(
-        models.ProfileSettings.profile_id == profileId
-    ).first()
-
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=f"Error while setting the profile's settings: {str(e)}")
-    
-    return {
-        "profile_id": db_settings.profile_id,
-        "diet_type_id": db_settings.diet_type_id,
-        "goal_id": db_settings.goal_id,
-        "birth_date": db_settings.birth_date,
-        "weight": db_settings.weight,
-        "height": db_settings.height,
-        "waist_measure": db_settings.waist_measure,
-        "hips_measure": db_settings.hips_measure
-    }
-
 @router.post("/{accountId}/profile/{profileId}/settings", status_code=201)
-async def set_profile_settings(profileSettings: schemas.ProfileSettingsCreate, accountId: int, profileId:int, db: Session = Depends(get_db)):
+async def set_profile_settings(
+    profileSettings: schemas.ProfileSettingsCreate,
+    accountId: int,
+    profileId:int,
+    db: Session = Depends(get_db)
+):
 
     validate_profile_ownership(accountId, profileId, db)
 
@@ -212,6 +204,31 @@ async def set_profile_settings(profileSettings: schemas.ProfileSettingsCreate, a
         "hips_measure": new_settings.hips_measure
     }
 
+@router.get("/{accountId}/profile/{profileId}/settings", status_code=201)
+async def get_profile_settings(accountId: int, profileId:int, db: Session = Depends(get_db)):
+
+    validate_profile_ownership(accountId, profileId, db)
+
+    db_settings = db.query(models.ProfileSettings).filter(
+        models.ProfileSettings.profile_id == profileId
+    ).first()
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error while setting the profile's settings: {str(e)}")
+    
+    return {
+        "profile_id": db_settings.profile_id,
+        "diet_type_id": db_settings.diet_type_id,
+        "goal_id": db_settings.goal_id,
+        "birth_date": db_settings.birth_date,
+        "weight": db_settings.weight,
+        "height": db_settings.height,
+        "waist_measure": db_settings.waist_measure,
+        "hips_measure": db_settings.hips_measure
+    }
 
 # ================================= AUX FUNCTIONS =================================
 
