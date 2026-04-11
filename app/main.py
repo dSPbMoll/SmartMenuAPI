@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import (
     generic_recipe, generic_ingredient, account, food_family,
-    recipe_tag, specific_ingredient, specific_recipe, food, meal, ban
+    recipe_tag, specific_ingredient, specific_recipe, food, meal
 )
 
 app = FastAPI(
@@ -32,8 +32,6 @@ app.include_router(specific_recipe.router)
 app.include_router(specific_ingredient.router)
 
 app.include_router(meal.router)
-
-app.include_router(ban.router)
 
 @app.get("/", tags=["Health Check"])
 async def root():
