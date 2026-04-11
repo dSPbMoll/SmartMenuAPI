@@ -168,14 +168,16 @@ async def set_profile_settings(
     validate_profile_ownership(accountId, profileId, db)
 
     new_settings = models.ProfileSettings(
-        profile_id = profileSettings.profileId,
-        diet_type_id = profileSettings.dietTypeId,
-        goal_id = profileSettings.goalId,
-        birth_date = profileSettings.birthDate,
+        profile_id = profileSettings.profile_id,
+        diet_type_id = profileSettings.diet_type_id,
+        goal_id = profileSettings.goal_id,
+        birth_date = profileSettings.birth_date,
         weight = profileSettings.weight,
         height = profileSettings.height,
-        waist_measure = profileSettings.waistMeasure,
-        hips_measure = profileSettings.hipsMeasure
+        waist_measure = profileSettings.waist_measure,
+        hips_measure = profileSettings.hips_measure,
+        sex = profileSettings.sex,
+        activity_level = profileSettings.activity_level
     )
 
     db_settings = db.query(models.ProfileSettings).filter(
@@ -201,7 +203,9 @@ async def set_profile_settings(
         "weight": new_settings.weight,
         "height": new_settings.height,
         "waist_measure": new_settings.waist_measure,
-        "hips_measure": new_settings.hips_measure
+        "hips_measure": new_settings.hips_measure,
+        "sex": new_settings.sex,
+        "activity_level": new_settings.activity_level
     }
 
 @router.get("/{accountId}/profile/{profileId}/settings", status_code=201)
@@ -228,6 +232,53 @@ async def get_profile_settings(accountId: int, profileId:int, db: Session = Depe
         "height": db_settings.height,
         "waist_measure": db_settings.waist_measure,
         "hips_measure": db_settings.hips_measure
+    }
+
+@router.post("/{accountId}/profile/{profileId}/illnesses", status_code=201)
+async def set_profile_illnesses(
+    accountId: int, 
+    profileId: int, 
+    illnessIds: schemas.IdList,
+    db: Session = Depends(get_db)
+):
+    validate_profile_ownership(accountId, profileId, db)
+
+    existing_illnesses = db.query(models.Illness.id).filter(
+        models.Illness.id.in_(illnessIds.ids)
+    ).all()
+    
+    existing_illness_set = {i[0] for i in existing_illnesses}
+
+    failed_illness_ids = [id for id in illnessIds.ids if id not in existing_illness_set]
+
+    try:
+        db.query(models.IllnessInProfile).filter(
+            models.IllnessInProfile.profile_id == profileId
+        ).delete(synchronize_session=False)
+
+        new_illnesses = []
+        for ill_id in existing_illness_set:
+            new_illnesses.append(
+                models.IllnessInProfile(
+                    profile_id=profileId, 
+                    illness_id=ill_id
+                )
+            )
+        
+        db.add_all(new_illnesses)
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al actualizar las enfermedades: {str(e)}"
+        )
+
+    return {
+        "status": "Success" if not failed_illness_ids else "Partial Success",
+        "message": "Enfermedades actualizadas correctamente",
+        "failed_illness_ids": failed_illness_ids
     }
 
 # ================================= AUX FUNCTIONS =================================

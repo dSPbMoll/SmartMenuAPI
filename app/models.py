@@ -27,6 +27,11 @@ class Goal(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     self_name = Column(String(100), nullable=False)
 
+class Illness(Base):
+    __tablename__ = "illness"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    self_name = Column(String(100), nullable=False)
+
 class ProfileSettings(Base):
     __tablename__ = "profile_settings"
     profile_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -37,6 +42,17 @@ class ProfileSettings(Base):
     height = Column(Numeric(5, 2))
     waist_measure = Column(Numeric(5, 2))
     hips_measure = Column(Numeric(5, 2))
+    sex = Column(Enum("male", "female"),
+        nullable=False,
+        default="male")
+    activity_level = Column(Enum("very low", "low", "mid", "high", "very high"),
+        nullable=False,
+        default="mid")
+
+class IllnessInProfile(Base):
+    __tablename__ = "illness_in_profile_settings"
+    profile_id = Column(Integer, ForeignKey("profile_settings.profile_id"), primary_key=True)
+    illness_id = Column(Integer, ForeignKey("illness.id"), primary_key=True)
 
 class FoodFamilyBan(Base):
     __tablename__ = "food_family_ban"

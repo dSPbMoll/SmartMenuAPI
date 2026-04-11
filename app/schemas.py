@@ -10,6 +10,17 @@ class IdList(BaseModel):
 
 # ============================== USERS ==============================
 
+class Sex(str, Enum):
+    male = "male"
+    female = "female"
+
+class ActivityLevel(str, Enum):
+    very_low = "very low"
+    low = "low"
+    mid = "mid"
+    high = "high"
+    very_high = "very high"
+
 class AccountCreate(BaseModel):
     username: str
     email: EmailStr
@@ -36,12 +47,14 @@ class Goal(BaseModel):
 class ProfileSettingsCreate(BaseModel):
     profile_id: int
     diet_type_id: int
-    goalId: int
+    goal_id: int
     birth_date: str
     weight: float
     height: float
     waist_measure: float
     hips_measure: float
+    sex: Sex
+    activity_level: ActivityLevel
 
 class ProfileSettings(ProfileSettingsCreate):
     pass
