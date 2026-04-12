@@ -11,6 +11,38 @@ router = APIRouter(
     tags=["Accounts"]
 )
 
+# ================================= AUX TABLES ====================================
+
+@router.get("/diet-types")
+async def get_diet_types(db: Session = Depends(get_db)):
+
+    db_diet_types = db.query(models.DietType).all()
+    
+    return [{
+        "id": diet_type.id,
+        "name": diet_type.self_name
+    } for diet_type in db_diet_types]
+
+@router.get("/goals")
+async def get_goals(db: Session = Depends(get_db)):
+
+    db_goals = db.query(models.Goal).all()
+    
+    return [{
+        "id": goal.id,
+        "name": goal.self_name
+    } for goal in db_goals]
+
+@router.get("/illnesses")
+async def get_illnesses(db: Session = Depends(get_db)):
+
+    db_illnesses = db.query(models.Illness).all()
+    
+    return [{
+        "id": illness.id,
+        "name": illness.self_name
+    } for illness in db_illnesses]
+
 # ================================= ACCOUNTS =================================
 
 @router.post("/", status_code=201)
@@ -80,7 +112,7 @@ async def delete_account(accountId: int, db: Session = Depends(get_db)):
         "message": f"Account with ID {accountId} successfuly deleted" 
     }
 
-@router.get("/{login}")
+@router.get("/login")
 async def login(data: schemas.Login, db: Session = Depends(get_db)):
     
     db_user = db.query(models.Account).filter(
@@ -165,8 +197,7 @@ async def set_profile_settings(
     profileSettings: schemas.ProfileSettingsCreate,
     accountId: int,
     profileId:int,
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db)):
 
     validate_profile_ownership(accountId, profileId, db)
 
@@ -242,8 +273,7 @@ async def set_profile_illnesses(
     accountId: int, 
     profileId: int, 
     illnessIds: schemas.IdList,
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db)):
     validate_profile_ownership(accountId, profileId, db)
 
     existing_illnesses = db.query(models.Illness.id).filter(
@@ -288,8 +318,7 @@ async def set_profile_illnesses(
 async def get_profile_illnesses(
     accountId: int, 
     profileId: int, 
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db)):
     # 1. Validar propiedad del perfil
     validate_profile_ownership(accountId, profileId, db)
 
@@ -319,8 +348,8 @@ async def set_bans(
     profileId: int, 
     foodFamilyIds: schemas.IdList,
     genericIngredientIds: schemas.IdList,
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db)):
+
     validate_profile_ownership(accountId, profileId, db)
 
     existing_families = db.query(models.FoodFamily.id).filter(
@@ -369,8 +398,8 @@ async def set_bans(
 async def get_bans(
     accountId: int, 
     profileId: int, 
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db)):
+
     validate_profile_ownership(accountId, profileId, db)
 
     db_ff_bans = db.query(models.FoodFamily).join(
@@ -394,9 +423,11 @@ async def get_bans(
         "bannedGenericIngredients": [generic_ingredient.self_name for generic_ingredient in db_gi_bans]
     }
 
+
 # ================================= AUX FUNCTIONS =================================
 
 def validate_profile_ownership(accountId: int, profileId: int, db: Session):
+
     db_account = db.query(models.Account).filter(
         models.Account.id == accountId
     ).first()

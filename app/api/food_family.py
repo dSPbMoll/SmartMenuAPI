@@ -9,6 +9,16 @@ router = APIRouter(
     tags=["Food Families"]
 )
 
+@router.get("/food-families")
+async def get_all_food_families(db: Session = Depends(get_db)):
+
+    db_food_families = db.query(models.FoodFamily).all()
+    
+    return [{
+        "id": food_family.id,
+        "name": food_family.self_name
+    } for food_family in db_food_families]
+
 @router.post("/", status_code=201)
 async def create_food_family(food_family: schemas.FoodFamily, db: Session = Depends(get_db)):
 
@@ -65,3 +75,5 @@ async def delete_food_family(foodFamilyId: int, db: Session = Depends(get_db)):
     return {
         "message": f"Food family with id {foodFamilyId} successfully deleted"
     }
+
+

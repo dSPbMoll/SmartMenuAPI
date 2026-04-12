@@ -10,6 +10,20 @@ router = APIRouter(
     tags=["Generic Ingredients"]
 )
 
+@router.get("/")
+async def get_all_generic_ingredients(db: Session = Depends(get_db)):
+    
+    db_ingredients = db.query(models.GenericIngredient).all()
+
+    if db_ingredients is None:
+        raise HTTPException(status_code=404, detail="Couldn't find any generic ingredient")
+
+    return [{
+        "id": ingredient.id,
+        "name": ingredient.self_name,
+        "food_family": ingredient.food_family
+    } for ingredient in db_ingredients]
+
 @router.post("/", status_code=201)
 async def create_generic_ingredient(
     ingredient: schemas.GenericIngredientCreate,
@@ -84,3 +98,4 @@ async def delete_generic_ingredient(genericIngredientId: int, db: Session = Depe
     db.commit()
 
     return {"message": f"Successfully deleted generic ingredient with id {genericIngredientId}."}
+
