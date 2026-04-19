@@ -74,6 +74,8 @@ class EatingMoment(str, Enum):
 
 class MealCreate(BaseModel):
     account_id: int
+    profilIds: List[int]
+    foodIds: List[int]
     eating_moment: EatingMoment
     eaten: bool
     datetime: datetime

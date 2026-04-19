@@ -79,6 +79,9 @@ class Meal(Base):
     )
     eaten = Column(Boolean)
     datetime = Column(DateTime)
+    #Relations
+    foods = relationship("Food", secondary="food_in_meal", backref="meals")
+    profiles = relationship("Profile", secondary="profile_in_meal", backref="meals")
 
 food_in_meal = Table(
     "food_in_meal", Base.metadata,
