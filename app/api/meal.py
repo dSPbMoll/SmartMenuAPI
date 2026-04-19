@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import schemas
 from app import models
-from account import validate_profile_ownership
+from app.api.account import validate_profile_ownership
 
 router = APIRouter(
     prefix="/userApi/v1/meal",
