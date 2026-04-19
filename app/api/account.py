@@ -112,7 +112,7 @@ async def delete_account(accountId: int, db: Session = Depends(get_db)):
         "message": f"Account with ID {accountId} successfuly deleted" 
     }
 
-@router.get("/login")
+@router.post("/login")
 async def login(data: schemas.Login, db: Session = Depends(get_db)):
     
     db_user = db.query(models.Account).filter(
@@ -123,7 +123,14 @@ async def login(data: schemas.Login, db: Session = Depends(get_db)):
     if db_user is None:
         return {"result": "NOT OK"}
     else:
-        return {"result": "OK"}
+        return {
+            "result": "OK",
+            "account": {
+                "id": db_user.id,
+                "username": db_user.username,
+                "email": db_user.email
+            } 
+        }
 
 # ================================= PROFILES =================================
 
