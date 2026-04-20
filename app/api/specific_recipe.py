@@ -33,11 +33,11 @@ async def create_specific_recipe(
             account_id = recipe.account_id,
             food_id = new_food.id,
             self_name = recipe.name,
-            chef_advice = recipe.cheff_advice
+            chef_advice = recipe.cheff_advice,
+            kcal = new_food.kcal
         )
         
         db.add(new_recipe)
-
         db.commit()
         db.refresh(new_recipe)
 
@@ -54,7 +54,8 @@ async def create_specific_recipe(
         "foodId": new_recipe.food_id,
         "accountId": new_recipe.account_id,
         "name": new_recipe.self_name,
-        "chefAdvice": new_recipe.chef_advice
+        "chefAdvice": new_recipe.chef_advice,
+        "kcal": new_recipe.kcal
     }
 
 @router.get("/{specificRecipeId}")
@@ -93,6 +94,7 @@ async def get_specific_recipe(specificRecipeId: int, db: Session = Depends(get_d
         "foodId": db_recipe.food_id,
         "name": db_recipe.self_name,
         "cheffAdvice": db_recipe.cheff_advice,
+        "kcal": db_recipe.kcal,
         "steps": [
             {
                 "stepNumber": s.step_number,
@@ -111,6 +113,7 @@ async def get_specific_recipe(specificRecipeId: int, db: Session = Depends(get_d
                 "id": i.id,
                 "name": i.self_name,
                 "foodId": i.food_id,
+                "kcal": i.kcal,
                 "foodFamily": {
                     "id": i.food_family.id,
                     "name": i.food_family.self_name
@@ -293,6 +296,7 @@ async def generate_specific_recipe_through_ai(
     {{
         "self_name": "Nombre de la receta",
         "chef_advice": "Un consejo breve del chef",
+        "kcal": "Numero entero con las kcal totales de la receta"
         "steps": [
             {{"step_number": 1, "instruction": "descripción", "estimated_time": 5}},
             ...

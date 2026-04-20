@@ -26,11 +26,11 @@ async def create_generic_recipe(
         new_recipe = models.GenericRecipe(
             self_name = recipe.name,
             food_id = new_food.id,
-            cheff_advice = recipe.cheff_advice
+            cheff_advice = recipe.cheff_advice,
+            kcal = recipe.kcal
         )
         
         db.add(new_recipe)
-
         db.commit()
         db.refresh(new_recipe)
 
@@ -46,6 +46,7 @@ async def create_generic_recipe(
         "foodId": new_recipe.food_id,
         "name": new_recipe.self_name,
         "cheffAdvice": new_recipe.cheff_advice,
+        "kcal": new_recipe.kcal
     }
 
 @router.get("/{genericRecipeId}")
@@ -78,6 +79,7 @@ async def get_generic_recipe(genericRecipeId: int, db: Session = Depends(get_db)
         "foodId": db_recipe.food_id,
         "name": db_recipe.self_name,
         "cheffAdvice": db_recipe.cheff_advice,
+        "kcal": db_recipe.kcal,
         "steps": [
             {
                 "stepNumber": s.step_number,
@@ -96,6 +98,7 @@ async def get_generic_recipe(genericRecipeId: int, db: Session = Depends(get_db)
                 "id": i.id,
                 "name": i.self_name,
                 "foodId": i.food_id,
+                "kcal": i.kcal,
                 "foodFamily": {
                     "id": i.food_family.id,
                     "name": i.food_family.self_name

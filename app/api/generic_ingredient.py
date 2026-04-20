@@ -21,7 +21,8 @@ async def get_all_generic_ingredients(db: Session = Depends(get_db)):
     return [{
         "id": ingredient.id,
         "name": ingredient.self_name,
-        "food_family": ingredient.food_family
+        "food_family": ingredient.food_family,
+        "kcal": ingredient.kcal
     } for ingredient in db_ingredients]
 
 @router.post("/", status_code=201)
@@ -38,11 +39,11 @@ async def create_generic_ingredient(
         new_ingredient = models.GenericIngredient(
             self_name = ingredient.name,
             food_family_id = ingredient.food_family_id,
-            food_id = new_food.id
+            food_id = new_food.id,
+            kcal = new_food.kcal
         )
         
         db.add(new_ingredient)
-        
         db.commit()
         db.refresh(new_ingredient)
         
@@ -56,6 +57,7 @@ async def create_generic_ingredient(
     return {
         "id": new_ingredient.id,
         "name": new_ingredient.self_name,
+        "kcal": new_ingredient.kcal,
         "foodFamilyId": new_ingredient.food_family_id,
         "foodId": new_ingredient.food_id
     }
@@ -76,6 +78,7 @@ async def get_generic_ingredient(genericIngredientId: int, db: Session = Depends
     return {
         "id": db_generic_ingredient.id,
         "name": db_generic_ingredient.self_name,
+        "kcal": db_generic_ingredient.kcal,
         "foodFamilyId": db_generic_ingredient.food_family_id,
         "foodId": db_generic_ingredient.food_id
     }

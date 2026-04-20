@@ -23,18 +23,17 @@ async def create_specific_ingredient(
     try:
         new_food = models.Food()
         db.add(new_food)
-
         db.flush() 
 
         new_ingredient = models.SpecificIngredient(
             self_name = ingredient.name,
             food_family_id = ingredient.food_family_id,
             account_id = ingredient.account_id,
-            food_id = new_food.id
+            food_id = new_food.id,
+            kcal = new_food.kcal
         )
         
         db.add(new_ingredient)
-        
         db.commit()
         db.refresh(new_ingredient)
         
@@ -48,6 +47,7 @@ async def create_specific_ingredient(
     return {
         "id": new_ingredient.id,
         "accountId": new_ingredient.account_id,
+        "kcal": new_ingredient.kcal,
         "name": new_ingredient.self_name,
         "foodId": new_ingredient.food_id
     }
@@ -69,7 +69,8 @@ async def get_specific_ingredient(specificIngredientId: int, db: Session = Depen
         "id": db_specific_ingredient.id,
         "name": db_specific_ingredient.self_name,
         "food_family_id": db_specific_ingredient.food_family_id,
-        "food_id": db_specific_ingredient.food_id
+        "food_id": db_specific_ingredient.food_id,
+        "kcal": db_specific_ingredient.kcal
     }
 
 @router.delete("/{specificIngredientId}")

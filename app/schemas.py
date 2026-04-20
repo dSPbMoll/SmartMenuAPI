@@ -101,10 +101,12 @@ class RecipeTag(RecipeTagCreate):
 class GenericRecipeCreate(BaseModel):
     name: str
     cheff_advice: Optional[str] = None
+    kcal: int
 
 class GenericRecipe(GenericRecipeCreate):
     id: int
     food_id: int
+    kcal: int
 
 class SpecificRecipeCreate(BaseModel):
     name: str
@@ -134,6 +136,7 @@ class SpecificRecipeStepCreate(BaseModel):
     step_number: int
     instruction: str
     estimated_time: Optional[int] = None
+    kcal: Optional[int]
 
 class SpecificRecipeStep(SpecificRecipeStepCreate):
     specific_recipe: SpecificRecipe
@@ -176,6 +179,7 @@ class SpecificIngredientCreate(BaseModel):
     name: str
     food_family_id: int
     account_id: int
+    kcal: Optional[int]
 
 class SpecificIngredient(SpecificIngredientCreate):
     id: int

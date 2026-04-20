@@ -138,6 +138,7 @@ class GenericRecipe(Base):
     food_id = Column(Integer, ForeignKey("food.id"), nullable=False)
     self_name = Column(String(150), nullable=False)
     cheff_advice = Column(Text)
+    kcal = Column(Integer)
 
     food_node = relationship("Food", back_populates="generic_recipe")
 
@@ -148,6 +149,7 @@ class SpecificRecipe(Base):
     food_id = Column(Integer, ForeignKey("food.id"))
     self_name = Column(String(150), nullable=False)
     chef_advice = Column(Text)
+    kcal = Column(Integer)
 
     food_node = relationship("Food", back_populates="specific_recipe")
 
@@ -188,6 +190,7 @@ class GenericIngredient(Base):
     self_name = Column(String(100))
     food_family_id = Column(Integer, ForeignKey("food_family.id"), nullable=False)
     food_id = Column(Integer, ForeignKey("food.id"), nullable=False)
+    kcal = Column(Integer)
 
     food_family = relationship("FoodFamily")
     food_node = relationship("Food", back_populates="generic_ingredient")
@@ -199,6 +202,7 @@ class SpecificIngredient(Base):
     self_name = Column(String(100), nullable=False)
     food_family_id = Column(Integer, ForeignKey("food_family.id"))
     food_id = Column(Integer, ForeignKey("food.id"))
+    kcal = Column(Integer)
 
     food_family = relationship("FoodFamily")
     food_node = relationship("Food", back_populates="specific_ingredient")
