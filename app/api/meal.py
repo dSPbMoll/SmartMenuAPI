@@ -69,6 +69,8 @@ async def create_meal(meal: schemas.MealCreate, db: Session = Depends(get_db)):
 
     new_meal.foods = db_foods
     new_meal.profiles = db_profiles
+
+    new_meal.kcal = calculate_kcal(db_foods)
     
     try:
         db.add(new_meal)
@@ -109,22 +111,7 @@ async def get_meal(mealId: int, db: Session = Depends(get_db)):
     ).all()
     '''
 
-    return {
-        "id": db_meal.id,
-        "eatingMoment": db_meal.eating_moment,
-        "eaten": db_meal.eaten,
-        "datetime": db_meal.datetime,
-        "account": {
-            "id": account.id,
-            "username": account.username,
-            "email": account.email
-        },
-        "foodIds": [
-            {
-                "id": f.id
-            } for f in foods
-        ]
-    }
+    return db_meal
 
 @router.delete("/{mealId}")
 async def delete_meal(mealId: int, db: Session = Depends(get_db)):
@@ -154,6 +141,7 @@ async def get_meals_from_account(accountId: int, db: Session = Depends(get_db)):
             "eatingMoment": m.eating_moment,
             "eaten": m.eaten,
             "datetime": m.datetime,
+            "kcal": m.kcal,
             "foods": [
                 {
                     "foodId": f.id,
@@ -169,30 +157,104 @@ async def get_meals_from_account(accountId: int, db: Session = Depends(get_db)):
         } for m in db_meals]
     }
 
+from sqlalchemy import func
+from datetime import datetime
+
+@router.get("/account/{accountId}/date/{date_str:path}")
+async def get_meals_from_account_by_date(accountId: int, date_str: str, db: Session = Depends(get_db)):
+    
+    try:
+        clean_date = date_str.replace("/", "-")
+        query_date = datetime.strptime(clean_date, "%d-%m-%Y").date()
+    except ValueError:
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid date format. Use DD/MM/YYYY or DD-MM-YYYY"
+        )
+
+    db_meals = db.query(models.Meal).filter(
+        models.Meal.acc_id == accountId,
+        func.date(models.Meal.datetime) == query_date
+    ).all()
+
+    return {
+        "accountId": accountId,
+        "meals": [
+            {
+                "id": m.id,
+                "eatingMoment": m.eating_moment,
+                "eaten": m.eaten,
+                "datetime": m.datetime.strftime("%d-%m-%Y") if m.datetime else None,
+                "kcal": m.kcal,
+                "foods": [
+                    {
+                        "foodId": f.id,
+                        "name": (
+                            f.generic_recipe.self_name if getattr(f, 'generic_recipe', None) else
+                            f.specific_recipe.self_name if getattr(f, 'specific_recipe', None) else
+                            f.generic_ingredient.self_name if getattr(f, 'generic_ingredient', None) else
+                            f.specific_ingredient.self_name if getattr(f, 'specific_ingredient', None) else
+                            "Unknown Food"
+                        )
+                    } for f in m.foods
+                ]
+            } for m in db_meals
+        ]
+    }
+
 # ================================ FOODS ================================ 
+
+from sqlalchemy.orm import joinedload
 
 @router.post("/{mealId}/foods")
 async def set_foods_to_meal(mealId: int, foodIds: schemas.IdList, db: Session = Depends(get_db)):
+    db_meal = db.query(models.Meal).filter(models.Meal.id == mealId).first()
 
-    db_meal = db.query(models.Meal).filter(
-        models.Meal.id == mealId
-    ).first()
     if not db_meal:
-        raise HTTPException(status_code=404, detail = f"Meal with id {mealId} not found")
+        raise HTTPException(status_code=404, detail=f"Meal with id {mealId} not found")
 
-    db.execute(
-        delete(models.food_in_meal).where(
-            models.food_in_meal.c.meal_id == mealId
-        )
-    )
+    unique_ids = list(set(foodIds.ids))
+    new_foods = db.query(models.Food).filter(
+        models.Food.id.in_(unique_ids)
+    ).options(
+        joinedload(models.Food.generic_ingredient),
+        joinedload(models.Food.specific_ingredient),
+        joinedload(models.Food.generic_recipe),
+        joinedload(models.Food.specific_recipe)
+    ).all()
 
-    if foodIds.ids:
-        food_associations = [
-            {"food_id": f_id, "meal": mealId}
-            for f_id in set(foodIds.ids)
-        ]
-        db.execute(insert(models.food_in_meal).values(food_associations))
+    if len(new_foods) != len(unique_ids):
+        raise HTTPException(status_code=400, detail="Uno o más food_ids no existen")
 
-    db.commit()
-    return {"message": f"Foods updated. Meal {mealId} now has {len(foodIds.ids)} foods."}
+    db_meal.foods = new_foods
 
+    db_meal.kcal = calculate_kcal(new_foods)
+
+    try:
+        db.commit()
+        db.refresh(db_meal)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al actualizar: {str(e)}")
+
+    return {
+        "message": f"Foods updated. Meal {mealId} now has {len(new_foods)} foods.",
+        "kcal": db_meal.kcal
+    }
+
+# =============================== AUX ===================================
+
+def calculate_kcal(foods: list[models.Food]) -> float:
+    total_kcal = 0.0
+    
+    for food in foods:
+        if food.specific_ingredient:
+            total_kcal += food.specific_ingredient.kcal
+        elif food.generic_ingredient:
+            total_kcal += food.generic_ingredient.kcal
+        elif food.specific_recipe:
+            total_kcal += food.specific_recipe.kcal
+        elif food.generic_recipe:
+            total_kcal += food.generic_recipe.kcal
+            
+    return total_kcal

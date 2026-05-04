@@ -79,6 +79,7 @@ class Meal(Base):
     )
     eaten = Column(Boolean)
     datetime = Column(DateTime)
+    kcal = Column(Integer, default = 0)
     #Relations
     foods = relationship("Food", secondary="food_in_meal", backref="meals")
     profiles = relationship("Profile", secondary="profile_in_meal", backref="meals")

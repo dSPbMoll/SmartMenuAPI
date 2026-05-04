@@ -86,7 +86,6 @@ class Meal(MealCreate):
     account: Account
     model_config = ConfigDict(from_attributes=True)
 
-
 # ============================== RECIPES ==============================
 # ---------------- RECIPE TAGS
 
