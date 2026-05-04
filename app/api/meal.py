@@ -184,7 +184,7 @@ async def get_meals_from_account_by_date(accountId: int, date_str: str, db: Sess
                 "id": m.id,
                 "eatingMoment": m.eating_moment,
                 "eaten": m.eaten,
-                "datetime": m.datetime.strftime("%d-%m-%Y") if m.datetime else None,
+                "datetime": m.datetime.isoformat() if m.datetime else None,
                 "kcal": m.kcal,
                 "foods": [
                     {
