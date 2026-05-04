@@ -30,7 +30,7 @@ async def create_specific_ingredient(
             food_family_id = ingredient.food_family_id,
             account_id = ingredient.account_id,
             food_id = new_food.id,
-            kcal = new_food.kcal
+            kcal = ingredient.kcal
         )
         
         db.add(new_ingredient)
