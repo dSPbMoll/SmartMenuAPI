@@ -49,6 +49,24 @@ async def create_generic_recipe(
         "kcal": new_recipe.kcal
     }
 
+@router.get("/")
+async def get_generic_recipes(db: Session = Depends(get_db)):
+
+    db_recipes = db.query(models.GenericRecipe).all()
+
+    if not db_recipes:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Generic recipes not found"
+        )
+
+    return [{
+        "id": r.id,
+        "foodId": r.food_id,
+        "name": r.self_name,
+        "kcal": r.kcal
+    } for r in db_recipes]
+
 @router.get("/{genericRecipeId}")
 async def get_generic_recipe(genericRecipeId: int, db: Session = Depends(get_db)):
 
