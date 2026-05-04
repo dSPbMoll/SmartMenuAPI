@@ -3,6 +3,8 @@
 
 # Virtual Enviroments (Heavy and PC-specific)
 venv/
+.venv/
+.venv/old
 env/
 __pycache__/
 *.py[cod]
