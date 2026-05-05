@@ -30,11 +30,11 @@ class Goal(Base):
 class Illness(Base):
     __tablename__ = "illness"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    self_name = Column(String(100), nullable=False)
+    self_name = Column(String(70), nullable=False)
 
 class ProfileSettings(Base):
     __tablename__ = "profile_settings"
-    profile_id = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id = Column(Integer, ForeignKey("profile.id"), primary_key=True)
     diet_type_id = Column(Integer, ForeignKey("diet_type.id"))
     goal_id = Column(Integer, ForeignKey("goal.id"))
     birth_date = Column(Date)
@@ -42,12 +42,16 @@ class ProfileSettings(Base):
     height = Column(Numeric(5, 2))
     waist_measure = Column(Numeric(5, 2))
     hips_measure = Column(Numeric(5, 2))
+    recommended_kcal = Column(Integer)                       # <-- NUEVO
     sex = Column(Enum("male", "female"),
         nullable=False,
         default="male")
     activity_level = Column(Enum("very low", "low", "mid", "high", "very high"),
         nullable=False,
         default="mid")
+
+    # Relación con Profile (opcional pero recomendable)
+    profile = relationship("Profile", backref="settings")
 
 class IllnessInProfile(Base):
     __tablename__ = "illness_in_profile_settings"

@@ -53,6 +53,7 @@ class ProfileSettingsCreate(BaseModel):
     height: float
     waist_measure: float
     hips_measure: float
+    recommended_kcal: Optional[int] = None   # <-- NUEVO
     sex: Sex
     activity_level: ActivityLevel
 

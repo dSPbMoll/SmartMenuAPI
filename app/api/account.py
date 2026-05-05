@@ -203,13 +203,13 @@ async def delete_profile(accountId: int, profileId: int, db: Session = Depends(g
 async def set_profile_settings(
     profileSettings: schemas.ProfileSettingsCreate,
     accountId: int,
-    profileId:int,
+    profileId: int,
     db: Session = Depends(get_db)):
-
+    
     validate_profile_ownership(accountId, profileId, db)
-
+    
     new_settings = models.ProfileSettings(
-        profile_id = profileSettings.profile_id,
+        profile_id = profileId,
         diet_type_id = profileSettings.diet_type_id,
         goal_id = profileSettings.goal_id,
         birth_date = profileSettings.birth_date,
@@ -217,6 +217,7 @@ async def set_profile_settings(
         height = profileSettings.height,
         waist_measure = profileSettings.waist_measure,
         hips_measure = profileSettings.hips_measure,
+        recommended_kcal = profileSettings.recommended_kcal,
         sex = profileSettings.sex,
         activity_level = profileSettings.activity_level
     )
@@ -249,21 +250,17 @@ async def set_profile_settings(
         "activity_level": new_settings.activity_level
     }
 
-@router.get("/{accountId}/profile/{profileId}/settings", status_code=201)
-async def get_profile_settings(accountId: int, profileId:int, db: Session = Depends(get_db)):
-
+@router.get("/{accountId}/profile/{profileId}/settings")   # quita status_code=201
+async def get_profile_settings(accountId: int, profileId: int, db: Session = Depends(get_db)):
     validate_profile_ownership(accountId, profileId, db)
 
     db_settings = db.query(models.ProfileSettings).filter(
         models.ProfileSettings.profile_id == profileId
     ).first()
 
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=f"Error while setting the profile's settings: {str(e)}")
-    
+    if not db_settings:
+        raise HTTPException(status_code=404, detail="Settings not found")
+
     return {
         "profile_id": db_settings.profile_id,
         "diet_type_id": db_settings.diet_type_id,
@@ -272,7 +269,10 @@ async def get_profile_settings(accountId: int, profileId:int, db: Session = Depe
         "weight": db_settings.weight,
         "height": db_settings.height,
         "waist_measure": db_settings.waist_measure,
-        "hips_measure": db_settings.hips_measure
+        "hips_measure": db_settings.hips_measure,
+        "recommended_kcal": db_settings.recommended_kcal,
+        "sex": db_settings.sex,
+        "activity_level": db_settings.activity_level
     }
 
 @router.post("/{accountId}/profile/{profileId}/illnesses", status_code=201)
