@@ -89,6 +89,26 @@ async def delete_specific_ingredient(specificIngredientId: int, db: Session = De
     db.delete(db_specific_ingredient)
     db.commit()
 
+@router.get("/account/{accountId}")
+async def get_specific_ingredients_by_account(
+    accountId: int,
+    db: Session = Depends(get_db)
+):
+    ingredients = db.query(models.SpecificIngredient).filter(
+        models.SpecificIngredient.account_id == accountId
+    ).all()
+
+    return [
+        {
+            "id": ing.id,
+            "name": ing.self_name,
+            "food_family_id": ing.food_family_id,
+            "food_id": ing.food_id,
+            "kcal": ing.kcal,
+        }
+        for ing in ingredients
+    ]
+
 # ===================================== AI ========================================
 
 load_dotenv()

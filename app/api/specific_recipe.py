@@ -34,7 +34,7 @@ async def create_specific_recipe(
             food_id = new_food.id,
             self_name = recipe.name,
             chef_advice = recipe.cheff_advice,
-            kcal = new_food.kcal
+            kcal=recipe.kcal if recipe.kcal is not None else 0
         )
         
         db.add(new_recipe)
@@ -267,6 +267,7 @@ async def get_all_specific_recipe_steps(specificRecipeId: int, db: Session = Dep
     # Steps can be a void list
     return steps
 
+
 # ================================ AI ================================
 
 load_dotenv()
@@ -274,6 +275,7 @@ client = genai.Client(
     api_key=os.getenv("GEMINI_API_KEY"),
     http_options={'api_version': 'v1beta'} 
 )
+
 
 @router.post("/ai")
 async def generate_specific_recipe_through_ai(
@@ -318,5 +320,11 @@ async def generate_specific_recipe_through_ai(
 
     except Exception as e:
         print(f"DEBUG FINAL: {e}")
+        error_str = str(e)
+        if "503" in error_str or "UNAVAILABLE" in error_str:
+            raise HTTPException(
+                status_code=503,
+                detail="El servicio de IA está temporalmente sobrecargado. Inténtalo de nuevo en unos segundos."
+            )
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 

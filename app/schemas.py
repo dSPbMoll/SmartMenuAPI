@@ -108,10 +108,12 @@ class GenericRecipe(GenericRecipeCreate):
     food_id: int
     kcal: int
 
+
 class SpecificRecipeCreate(BaseModel):
     name: str
     cheff_advice: Optional[str] = None
     account_id: int
+    kcal: Optional[int] = None
 
 class SpecificRecipe(BaseModel):
     id: int
@@ -142,7 +144,7 @@ class SpecificRecipeStep(SpecificRecipeStepCreate):
     specific_recipe: SpecificRecipe
 
 class SpecificRecipeStepList(BaseModel):
-    steps: List[SpecificRecipeStep] 
+    steps: List[SpecificRecipeStepCreate] 
 
 # ============================== INGREDIENTS ==============================
 
