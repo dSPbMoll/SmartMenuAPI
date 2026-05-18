@@ -119,10 +119,8 @@ client = genai.Client(
 
 @router.post("/ai-detect")
 async def detect_ingredients(file: UploadFile = File(...)):
-    # 1. Leer los bytes de la imagen que envía el móvil
     image_bytes = await file.read()
-    
-    # 2. Preparar el contenido para Gemini (Texto + Imagen)
+
     prompt = [
         "Identifica todos los ingredientes de cocina presentes en esta imagen. "
         "Devuelve una lista simple de strings en formato JSON: {'ingredients': ['item1', 'item2']}",
@@ -131,12 +129,20 @@ async def detect_ingredients(file: UploadFile = File(...)):
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash", # <--- Prueba este nombre simplificado
+            model="gemini-2.5-flash",  # si falla, prueba "gemini-2.0-flash-001" o "gemini-1.5-flash"
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json"
             )
         )
         return json.loads(response.text)
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_str = str(e)
+        if "503" in error_str or "UNAVAILABLE" in error_str:
+            raise HTTPException(
+                status_code=503,
+                detail="El servicio de IA está temporalmente sobrecargado. Inténtalo de nuevo en unos segundos."
+            )
+        # Otros errores (clave, modelo no encontrado, etc.)
+        raise HTTPException(status_code=500, detail=f"Error al procesar la imagen: {str(e)}")

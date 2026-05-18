@@ -93,7 +93,7 @@ async def get_specific_recipe(specificRecipeId: int, db: Session = Depends(get_d
         "id": db_recipe.id,
         "foodId": db_recipe.food_id,
         "name": db_recipe.self_name,
-        "cheffAdvice": db_recipe.cheff_advice,
+        "chefAdvice": db_recipe.chef_advice,
         "kcal": db_recipe.kcal,
         "steps": [
             {
@@ -121,6 +121,27 @@ async def get_specific_recipe(specificRecipeId: int, db: Session = Depends(get_d
             } for i in ingredients
         ]
     }
+
+
+@router.get("/account/{accountId}")
+async def get_specific_recipes_by_account(
+    accountId: int,
+    db: Session = Depends(get_db)
+):
+    recipes = db.query(models.SpecificRecipe).filter(
+        models.SpecificRecipe.account_id == accountId
+    ).all()
+
+    return [
+        {
+            "id": r.id,
+            "foodId": r.food_id,
+            "name": r.self_name,
+            "chefAdvice": r.chef_advice,
+            "kcal": r.kcal,
+        }
+        for r in recipes
+    ]
 
 @router.delete("/{specificRecipeId}")
 async def delete_specific_recipe(specificRecipeId: int, db: Session = Depends(get_db)):
@@ -235,6 +256,7 @@ async def set_specific_recipe_steps(
 
     for step_data in steps_in.steps:
         full_data = step_data.model_dump()
+        full_data.pop("kcal", None)
         full_data["specific_recipe_id"] = specificRecipeId
         
         new_step = models.SpecificRecipeStep(**full_data)

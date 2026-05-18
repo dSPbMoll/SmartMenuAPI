@@ -131,14 +131,13 @@ class GenericRecipeStep(GenericRecipeStepCreate):
     generic_recipe: GenericRecipe
 
 class GenericRecipeStepList(BaseModel):
-    steps: List[GenericRecipeStep] 
+    steps: List[GenericRecipeStepCreate]
 
 class SpecificRecipeStepCreate(BaseModel):
     specific_recipe_id: int
     step_number: int
     instruction: str
     estimated_time: Optional[int] = None
-    kcal: Optional[int]
 
 class SpecificRecipeStep(SpecificRecipeStepCreate):
     specific_recipe: SpecificRecipe
