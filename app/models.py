@@ -146,6 +146,8 @@ class GenericRecipe(Base):
     kcal = Column(Integer)
 
     food_node = relationship("Food", back_populates="generic_recipe")
+    steps = relationship("GenericRecipeStep", back_populates="generic_recipe")
+    ingredients = relationship("GenericIngredient", secondary="generic_ingredient_in_generic_recipe", backref="generic_recipes")
 
 class SpecificRecipe(Base):
     __tablename__ = "specific_recipe"
@@ -157,6 +159,9 @@ class SpecificRecipe(Base):
     kcal = Column(Integer)
 
     food_node = relationship("Food", back_populates="specific_recipe")
+    steps = relationship("SpecificRecipeStep", back_populates="specific_recipe")
+    ingredients = relationship("GenericIngredient", secondary="generic_ingredient_in_specific_recipe", backref="specific_recipes")
+    specific_ingredients = relationship("SpecificIngredient", secondary="specific_ingredient_in_specific_recipe", backref="specific_recipes")
 
 class GenericRecipeStep(Base):
     __tablename__ = "generic_recipe_step"
@@ -164,6 +169,7 @@ class GenericRecipeStep(Base):
     step_number = Column(Integer, primary_key=True)
     instruction = Column(Text, nullable=False)
     estimated_time = Column(Integer)  # In minutes
+    generic_recipe = relationship("GenericRecipe", back_populates="steps")
 
 class SpecificRecipeStep(Base):
     __tablename__ = "specific_recipe_step"
@@ -171,6 +177,7 @@ class SpecificRecipeStep(Base):
     step_number = Column(Integer, primary_key=True)
     instruction = Column(Text, nullable=False)
     estimated_time = Column(Integer)  # In minutes
+    specific_recipe = relationship("SpecificRecipe", back_populates="steps")
 
 # ============================== INGREDIENTS ==============================
 

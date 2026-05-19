@@ -20,14 +20,13 @@ router = APIRouter(
 
 @router.post("/", status_code=201)
 async def create_specific_recipe(
-    recipe: schemas.SpecificRecipeCreate, 
+    recipe: schemas.SpecificRecipeCreate,
     db: Session = Depends(get_db)
 ):
     try:
         new_food = models.Food()
         db.add(new_food)
-
-        db.flush() 
+        db.flush()
 
         new_recipe = models.SpecificRecipe(
             account_id = recipe.account_id,
@@ -36,7 +35,7 @@ async def create_specific_recipe(
             chef_advice = recipe.cheff_advice,
             kcal=recipe.kcal if recipe.kcal is not None else 0
         )
-        
+
         db.add(new_recipe)
         db.commit()
         db.refresh(new_recipe)
@@ -45,10 +44,10 @@ async def create_specific_recipe(
         db.rollback()
         print(f"Error en create_specific_recipe: {e}")
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"Error while saving the recipe and food record: {str(e)}"
         )
-    
+
     return {
         "id": new_recipe.id,
         "foodId": new_recipe.food_id,
@@ -67,7 +66,7 @@ async def get_specific_recipe(specificRecipeId: int, db: Session = Depends(get_d
 
     if not db_recipe:
         raise HTTPException(
-            status_code=404, 
+            status_code=404,
             detail=f"Specific recipe with ID {specificRecipeId} not found"
         )
 
@@ -117,7 +116,7 @@ async def get_specific_recipe(specificRecipeId: int, db: Session = Depends(get_d
                 "foodFamily": {
                     "id": i.food_family.id,
                     "name": i.food_family.self_name
-                } if i.food_family else None # Just in case an ingredient has no family
+                } if i.food_family else None
             } for i in ingredients
         ]
     }
@@ -150,7 +149,6 @@ async def delete_specific_recipe(specificRecipeId: int, db: Session = Depends(ge
     if not recipe:
         raise HTTPException(status_code=404, detail="Specific Recipe not found")
 
-    # Delete recipe
     db.execute(
         delete(models.SpecificRecipe).where(
             models.SpecificRecipe.id == specificRecipeId
@@ -204,7 +202,6 @@ async def set_ingredients_to_specific_recipe(
     if not recipe:
         raise HTTPException(status_code=404, detail="Specific Recipe not found")
 
-    # Delete existing ingredient relations
     db.execute(
         delete(models.generic_ingredient_in_specific_recipe).where(
             models.generic_ingredient_in_specific_recipe.c.recipe_id == specificRecipeId
@@ -216,7 +213,6 @@ async def set_ingredients_to_specific_recipe(
         )
     )
 
-    # Add new ingredients to recipe's associatives
     if genericIngredients.ids:
         ingredient_associations = [
             {"recipe_id": specificRecipeId, "ingredient_id": i_id}
@@ -239,7 +235,7 @@ async def set_ingredients_to_specific_recipe(
 @router.post("/{specificRecipeId}/steps", status_code=201)
 async def set_specific_recipe_steps(
     specificRecipeId: int,
-    steps_in: schemas.SpecificRecipeStepList, 
+    steps_in: schemas.SpecificRecipeStepList,
     db: Session = Depends(get_db)
 ):
     recipe = db.query(models.SpecificRecipe).filter(
@@ -258,7 +254,7 @@ async def set_specific_recipe_steps(
         full_data = step_data.model_dump()
         full_data.pop("kcal", None)
         full_data["specific_recipe_id"] = specificRecipeId
-        
+
         new_step = models.SpecificRecipeStep(**full_data)
         db.add(new_step)
 
@@ -267,7 +263,7 @@ async def set_specific_recipe_steps(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Database error: {str(e)}")
-    
+
     return {"message": f"Specific recipe steps updated for specific recipe with id {specificRecipeId}"}
 
 @router.get("/{specificRecipeId}/steps")
@@ -278,15 +274,14 @@ async def get_all_specific_recipe_steps(specificRecipeId: int, db: Session = Dep
 
     if not recipe_exists:
         raise HTTPException(
-            status_code=404, 
+            status_code=404,
             detail=f"Specifci recipe with ID {specificRecipeId} does not exist"
         )
 
     steps = db.query(models.SpecificRecipe).filter(
         models.SpecificRecipe.specific_recipe_id == specificRecipeId
     ).order_by(models.SpecificRecipe.step_number.asc()).all()
-    
-    # Steps can be a void list
+
     return steps
 
 
@@ -295,50 +290,98 @@ async def get_all_specific_recipe_steps(specificRecipeId: int, db: Session = Dep
 load_dotenv()
 client = genai.Client(
     api_key=os.getenv("GEMINI_API_KEY"),
-    http_options={'api_version': 'v1beta'} 
+    http_options={'api_version': 'v1beta'}
 )
 
 
 @router.post("/ai")
 async def generate_specific_recipe_through_ai(
-    payload: schemas.ingredientNameListAI, 
+    payload: schemas.ingredientNameListAI,
     db: Session = Depends(get_db)
 ):
-    '''
-    for m in client.models.list():
-        print(f"Modelo disponible: {m.name}")
-    '''
-
-    # 1. Preparamos la lista de ingredientes para el prompt
     ingredients_str = ", ".join(payload.ingredient_list)
-    
-    # 2. Creamos el Prompt (Instrucciones precisas)
-    prompt = f"""
-    Eres un chef experto. Basándote SOLO en estos ingredientes (no debes usarlos todos necesariamente):
-    {ingredients_str}, genera una receta creativa. 
-    Responde ÚNICAMENTE en formato JSON con la siguiente estructura:
-    {{
-        "self_name": "Nombre de la receta",
-        "chef_advice": "Un consejo breve del chef",
-        "kcal": "Numero entero con las kcal totales de la receta"
-        "steps": [
-            {{"step_number": 1, "instruction": "descripción", "estimated_time": 5}},
-            ...
-        ]
-    }}
-    No añadas texto extra fuera del JSON.
-    """
+    strict = payload.strict_mode if payload.strict_mode is not None else True
+
+    filter = payload.filter if payload.filter else ''
+    if filter:
+        if filter == 'Rápidas':
+            filter_instruction = 'La receta debe ser rápida de preparar (menos de 30 minutos).'
+        elif filter == 'Elaboradas':
+            filter_instruction = 'La receta puede ser elaborada, sin límite de tiempo.'
+        elif filter == 'Postres':
+            filter_instruction = 'La receta debe ser un postre o dulce.'
+        else:
+            filter_instruction = ''
+    else:
+        filter_instruction = ''
+
+    restrictions = payload.restrictions if payload.restrictions else []
+    if restrictions:
+        restrictions_str = ", ".join(restrictions)
+        restrictions_instruction = (
+            f"⚠️ RESTRICCIONES DEL USUARIO: {restrictions_str}. "
+            "Estas restricciones pueden ser alimentos concretos, familias de alimentos (ej. Lácteos) o condiciones médicas (ej. diabetes, celiaquía). "
+            "NO uses ningún alimento mencionado ni derivados que los contengan. "
+            "Si hay una condición médica, adapta la receta para que sea totalmente segura."
+        )
+    else:
+        restrictions_instruction = ''
+
+
+
+    if strict:
+        prompt = f"""
+        Eres un chef experto. Basándote SOLO en estos ingredientes (no debes usarlos todos necesariamente):
+        {ingredients_str}, genera una receta creativa {' ' + filter_instruction if filter_instruction else ''}{' ' + restrictions_instruction if restrictions_instruction else ''}.
+        Incluye SIEMPRE en el JSON la lista completa de ingredientes utilizados (solo los de la lista).
+        Responde ÚNICAMENTE en formato JSON con la siguiente estructura:
+        {{
+            "self_name": "Nombre de la receta",
+            "chef_advice": "Un consejo breve del chef",
+            "kcal": "Numero entero con las kcal totales de la receta",
+            "steps": [
+                {{"step_number": 1, "instruction": "descripción", "estimated_time": 5}}
+            ],
+            "ingredients": ["ingrediente1", "ingrediente2", ...]
+        }}
+        No añadas texto extra fuera del JSON.
+        """
+    else:
+        prompt = f"""
+        Eres un chef experto. Utilizando como base o inspiración estos ingredientes (no debes usarlos todos necesariamente):
+        {ingredients_str}, genera una receta creativa, sabrosa y completa {' ' + filter_instruction if filter_instruction else ''}{' ' + restrictions_instruction if restrictions_instruction else ''}.
+        Puedes añadir libremente otros ingredientes, condimentos, líquidos y guarniciones
+        que consideres necesarios para que la receta sea un plato realista y apetecible.
+        Incluye SIEMPRE en el JSON la lista completa de ingredientes utilizados (tanto los proporcionados como los añadidos por ti).
+        Responde ÚNICAMENTE en formato JSON con la siguiente estructura:
+        {{
+            "self_name": "Nombre de la receta",
+            "chef_advice": "Un consejo breve del chef",
+            "kcal": "Numero entero con las kcal totales de la receta",
+            "steps": [
+                {{"step_number": 1, "instruction": "descripción", "estimated_time": 5}},
+                ...
+            ],
+            "ingredients": ["ingrediente1", "ingrediente2", ...]
+        }}
+        No añadas texto extra fuera del JSON.
+        """
 
     try:
-        # Cambiamos el modelo a la versión flash estándar (sin el "native-audio")
         response = client.models.generate_content(
-            model="gemini-2.5-flash", # <--- Prueba este nombre simplificado
+            model="gemini-2.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json"
             )
         )
-        return json.loads(response.text)
+        recipe = json.loads(response.text)
+
+        # Fallback: si la IA no incluyó el campo "ingredients", añadir al menos los originales
+        if "ingredients" not in recipe:
+            recipe["ingredients"] = payload.ingredient_list
+
+        return recipe
 
     except Exception as e:
         print(f"DEBUG FINAL: {e}")
@@ -349,4 +392,3 @@ async def generate_specific_recipe_through_ai(
                 detail="El servicio de IA está temporalmente sobrecargado. Inténtalo de nuevo en unos segundos."
             )
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-

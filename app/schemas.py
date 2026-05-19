@@ -149,6 +149,9 @@ class SpecificRecipeStepList(BaseModel):
 
 class ingredientNameListAI(BaseModel):
     ingredient_list: List[str]
+    strict_mode: Optional[bool] = True
+    filter: Optional[str] = None 
+    restrictions: Optional[List[str]] = None
 
 # ------ Food
 
@@ -178,9 +181,9 @@ class GenericIngredient(GenericIngredientCreate):
 
 class SpecificIngredientCreate(BaseModel):
     name: str
-    food_family_id: int
+    food_family_id: Optional[int] = None
     account_id: int
-    kcal: Optional[int]
+    kcal: Optional[int] = None
 
 class SpecificIngredient(SpecificIngredientCreate):
     id: int

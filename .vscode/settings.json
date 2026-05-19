@@ -1,0 +1,19 @@
+{
+    "window.title": "API",
+    "workbench.colorCustomizations": {
+        "activityBar.background": "#7a0aeb",
+        "activityBar.foreground": "#ffffff",
+        "activityBar.activeBorder": "#ffffff",
+        "activityBar.inactiveForeground": "#ffffff90",
+        "activityBarBadge.foreground": "#000000",
+        "activityBarBadge.background": "#ffc9ff",
+        "statusBarItem.warningBackground": "#7a0aeb",
+        "statusBarItem.warningForeground": "#ffffff",
+        "statusBarItem.warningHoverBackground": "#7a0aeb",
+        "statusBarItem.warningHoverForeground": "#ffffff90",
+        "statusBarItem.remoteBackground": "#7a0aeb",
+        "statusBarItem.remoteForeground": "#ffffff",
+        "statusBarItem.remoteHoverBackground": "#7a0aeb",
+        "statusBarItem.remoteHoverForeground": "#ffffff90"
+    }
+}
